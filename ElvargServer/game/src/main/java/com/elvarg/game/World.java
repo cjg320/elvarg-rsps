@@ -14,6 +14,8 @@ import com.elvarg.game.entity.updating.NPCUpdating;
 import com.elvarg.game.entity.updating.PlayerUpdating;
 import com.elvarg.game.entity.updating.sync.GameSyncExecutor;
 import com.elvarg.game.entity.updating.sync.GameSyncTask;
+import com.elvarg.game.event.EventDispatcher;
+import com.elvarg.game.event.events.PlayerPacketsFlushedEvent;
 import com.elvarg.game.model.Graphic;
 import com.elvarg.game.model.GraphicHeight;
 import com.elvarg.game.model.Location;
@@ -196,6 +198,7 @@ public class World {
 						player.resetUpdating();
 						player.setCachedUpdateBlock(null);
 						player.getSession().flush();
+						EventDispatcher.getGlobal().dispatch(new PlayerPacketsFlushedEvent(player));
 					} catch (Exception e) {
 						e.printStackTrace();
 						player.requestLogout();

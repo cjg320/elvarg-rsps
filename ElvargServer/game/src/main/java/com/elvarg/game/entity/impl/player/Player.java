@@ -43,6 +43,8 @@ import com.elvarg.game.entity.impl.Mobile;
 import com.elvarg.game.entity.impl.npc.NPC;
 import com.elvarg.game.entity.impl.npc.NpcAggression;
 import com.elvarg.game.entity.impl.playerbot.PlayerBot;
+import com.elvarg.game.event.EventDispatcher;
+import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
 import com.elvarg.game.model.Animation;
 import com.elvarg.game.model.Appearance;
 import com.elvarg.game.model.ChatMessage;
@@ -392,6 +394,7 @@ public class Player extends Mobile {
 		PlayerSession session = getSession();
 		if (session != null) {
 			session.processPackets();
+			EventDispatcher.getGlobal().dispatch(new PlayerPacketsProcessedEvent(this));
 		}
 
 		// Process walking queue..
