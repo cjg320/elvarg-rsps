@@ -61,7 +61,8 @@ public class AccuracyFormulasDpsCalc {
     private static int effectiveAttackLevel(Mobile entity) {
 
         if (entity.isNpc()) {
-            return entity.getAsNpc().getCurrentDefinition().getStats()[0] + 8;
+            // +9 = +1 NPC neutral stance + 8 base, per OSRS Wiki Damage_per_second/Melee.
+            return entity.getAsNpc().getCurrentDefinition().getStats()[0] + 9;
         }
 
         Player player = entity.getAsPlayer();
@@ -151,6 +152,7 @@ public class AccuracyFormulasDpsCalc {
     private static int effectiveDefenseLevel(Mobile enemy) {
 
         if (enemy.isNpc()) {
+            // +9 = +1 NPC neutral stance + 8 base, per OSRS Wiki Damage_per_second/Melee.
             return enemy.getAsNpc().getCurrentDefinition().getStats()[2] + 9;
         }
 
