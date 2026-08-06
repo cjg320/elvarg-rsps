@@ -2,11 +2,14 @@ package com.elvarg;
 
 import com.elvarg.game.GameBuilder;
 import com.elvarg.game.GameConstants;
+import com.elvarg.game.World;
 import com.elvarg.net.NetworkBuilder;
 import com.elvarg.net.NetworkConstants;
 import com.elvarg.plugin.event.EventManager;
 import com.elvarg.plugin.event.impl.ServerBootEvent;
 import com.elvarg.plugin.event.impl.ServerStartedEvent;
+import com.elvarg.rl.MinimalEnvironmentBot;
+import com.elvarg.rl.MinimalSocketServer;
 import com.elvarg.util.ShutdownHook;
 import com.elvarg.util.flood.Flooder;
 
@@ -62,6 +65,8 @@ public class Server {
             EventManager.INSTANCE.postAndWait(new ServerBootEvent());
             new NetworkBuilder().initialize(NetworkConstants.GAME_PORT);
             logger.info(GameConstants.NAME + " is now online!");
+            World.getAddPlayerQueue().add(new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0]));
+            new MinimalSocketServer(7070).start();
             EventManager.INSTANCE.post(new ServerStartedEvent());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "An error occurred while binding the Bootstrap!", e);
