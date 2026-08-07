@@ -3,6 +3,8 @@ package com.elvarg;
 import com.elvarg.game.GameBuilder;
 import com.elvarg.game.GameConstants;
 import com.elvarg.game.World;
+import com.elvarg.game.entity.impl.npc.NPC;
+import com.elvarg.game.model.Location;
 import com.elvarg.net.NetworkBuilder;
 import com.elvarg.net.NetworkConstants;
 import com.elvarg.plugin.event.EventManager;
@@ -65,7 +67,19 @@ public class Server {
             EventManager.INSTANCE.postAndWait(new ServerBootEvent());
             new NetworkBuilder().initialize(NetworkConstants.GAME_PORT);
             logger.info(GameConstants.NAME + " is now online!");
-            World.getAddPlayerQueue().add(new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0]));
+            // PlayerBot's own constructor already queues itself via World.getAddPlayerQueue()
+            // (confirmed: PlayerBot.java:77-79) - do not add it again here. Traced and confirmed
+            // harmless if done (MobileList.add()'s isRegistered() guard no-ops the second add,
+            // so there's no double-processing), but redundant and worth not doing.
+            MinimalEnvironmentBot bot = new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0]);
+            // Hobgoblin (npc id 3049), 1 tile east of the bot's spawn (3089, 3466) - non-diagonal,
+            // so Chebyshev distance is unambiguously 1 regardless of any diagonal-melee fidelity
+            // question. (3089/3090, 3466) is verified non-wilderness, non-multi, walkable, and
+            // >55 tiles from the nearest default NPC spawn (see MinimalEnvironmentBot.withMeleeLoadout()
+            // for the matching bot-side spawn override and the verification evidence).
+            NPC target = NPC.create(3049, new Location(3090, 3466));
+            World.getAddNPCQueue().add(target);
+            bot.setTarget(target);
             new MinimalSocketServer(7070).start();
             EventManager.INSTANCE.post(new ServerStartedEvent());
         } catch (Exception e) {
