@@ -29,8 +29,10 @@ import java.util.logging.Logger;
  * <p>
  * The step's response is NOT resolved when the action is applied - it is deferred via a queued
  * Runnable, drained on PlayerPacketsFlushedEvent once the tick has fully resolved. The response
- * payload (a flush-bound counter) is built INSIDE that Runnable, at flush-drain time, so the
- * value returned to the client is only ever read after the tick genuinely advanced.
+ * payload (the enemy_hp_fraction observation field) is built INSIDE that Runnable, at flush-drain
+ * time, so the value returned to the client is only ever read after the tick genuinely advanced -
+ * the same by-construction guarantee (PROJECT_STATE.md section 8.2) that made the old placeholder
+ * counter's flush-bound timing safe now makes reading target.getHitpoints() here safe too.
  */
 public class MinimalEnvironmentBot extends PlayerBot {
 
@@ -193,11 +195,51 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		// Defer resolution to flush-drain time - do NOT complete the future here.
 		onFlushTasks.add(() -> {
 			final String payload = validStep
-					? "{\"counter\":" + flushCounter + "}"
+					? buildObservationPayload()
 					: "{\"error\":\"expected a step action\"}";
-			logger.info("[MinimalEnv] resolving step future at flush-drain, counter=" + flushCounter);
+			logger.info("[MinimalEnv] resolving step future at flush-drain: " + payload);
 			step.future().complete(payload);
 		});
+	}
+
+	/**
+	 * Observation-payload swap, first vertical slice: enemy_hp_fraction alone, matching
+	 * agent/observation.py's contract exactly - {@code _clip01(npc.current_hp / npc.max_hp)},
+	 * i.e. {@code max(0.0, min(1.0, current / max))}. Called from inside the flush-drain
+	 * Runnable queued above, so target.getHitpoints() here is the POST-resolution read (the
+	 * target NPC's own NPC.process() has already run this tick by flush time - see the
+	 * by-construction guarantee, PROJECT_STATE.md section 8.2) - the same point Stage 1's
+	 * instrumentation measured this fraction from and confirmed monotone, bounded, and
+	 * floored-at-0 for Hobgoblin 3049 (max HP constant 29 across a full fight).
+	 */
+	private String buildObservationPayload() {
+		if (target == null) {
+			// Do NOT throw here. This runs in the flush-drain Runnable on the single game-tick
+			// thread, dispatched from inside World.java's per-player GameSyncTask around
+			// PlayerPacketsFlushedEvent - that task's own try/catch would catch an uncaught throw
+			// and call player.requestLogout() on THIS bot (World.java:192-208), kicking the RL
+			// session out of the game. Either way the pending step future is never completed, so
+			// the Python side would only ever see a bare timeout. Complete the future with an
+			// explicit error payload instead (same convention as the "expected a step action"
+			// path), so the failure is loud where it can be acted on and the bot stays in the
+			// world. See PROJECT_STATE.md section 8.1 for the full investigation.
+			logger.severe("[MinimalEnv] cannot build observation payload: target is null");
+			return "{\"error\":\"observation payload: target is null\"}";
+		}
+		final int npcMaxHp = target.getCurrentDefinition().getHitpoints();
+		if (npcMaxHp <= 0) {
+			// Guards an NPC with bad/missing definition data (PROJECT_STATE.md section 9: Elvarg
+			// per-monster data is not reliably curated). Error payload, not throw (same tick-thread
+			// reasoning as above); and NEVER silently emit enemy_hp_fraction=0.0, which is
+			// indistinguishable from a dead NPC.
+			logger.severe("[MinimalEnv] NPC max HP is " + npcMaxHp
+					+ " - refusing to emit enemy_hp_fraction; check npc_defs.json hitpoints");
+			return "{\"error\":\"observation payload: npc max hp is " + npcMaxHp + "\"}";
+		}
+		final int npcCurrentHp = target.getHitpoints();
+		final double rawFraction = (double) npcCurrentHp / (double) npcMaxHp;
+		final double enemyHpFraction = Math.max(0.0, Math.min(1.0, rawFraction));
+		return "{\"enemy_hp_fraction\":" + enemyHpFraction + "}";
 	}
 
 	private boolean isStepAction(String message) {
