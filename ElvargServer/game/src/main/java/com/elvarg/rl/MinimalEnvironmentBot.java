@@ -1,5 +1,6 @@
 package com.elvarg.rl;
 
+import com.elvarg.game.World;
 import com.elvarg.game.content.combat.FightType;
 import com.elvarg.game.definition.PlayerBotDefinition;
 import com.elvarg.game.entity.impl.npc.NPC;
@@ -41,6 +42,14 @@ public class MinimalEnvironmentBot extends PlayerBot {
 
 	/** Total time the tick thread will wait for a step before expiring the session and letting the tick proceed freely. */
 	private static final long SESSION_WAIT_BUDGET_MS = 10_000;
+
+	/**
+	 * The controlled arena's known tiles (PROJECT_STATE.md section 8.1). Deliberately duplicated
+	 * here rather than shared with Server.java's/withMeleeLoadout()'s own literals of the same
+	 * coordinates - this is one protocol slice (the reset verb), not a location-constant refactor.
+	 */
+	private static final Location ARENA_BOT_LOCATION = new Location(3089, 3466);
+	private static final Location ARENA_NPC_LOCATION = new Location(3090, 3466);
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -172,35 +181,117 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			return;
 		}
 
-		final boolean validStep = isStepAction(step.message());
+		final String action = parseAction(step.message());
+		String resetErrorPayload = null;
 
-		// The fixed action for this slice: attack the target. This is where the hit's damage is
-		// synchronously ROLLED (accuracy + damage roll happen inside PendingHit's constructor,
-		// called from Combat.attack() -> performNewAttack()) and QUEUED onto the target NPC's own
-		// HitQueue - but NOT yet applied to its hitpoints. That only happens later this same tick,
-		// when the target's own NPC.process() runs (a separate, later loop in World.process()).
-		if (validStep && target != null) {
-			this.getCombat().attack(target);
-			// Read back what got queued for the target, right after attack() and before its own
-			// NPC.process() has run this tick: 0 if attack() didn't roll a new hit this tick
-			// (still on cooldown), otherwise the just-rolled damage sitting in its HitQueue.
-			final int rolledDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
-			final int injectNpcHp = target.getHitpoints();
-			logger.info("[MinimalEnv] INJECT read (right after attack applied, pre-resolution): npc_hp="
-					+ injectNpcHp + " rolled_damage=" + rolledDamage);
+		if ("reset".equals(action)) {
+			// Runs entirely on the tick thread, same as the attack below - see performReset()'s
+			// own doc for the full reset design (PROJECT_STATE.md section 13).
+			resetErrorPayload = performReset();
+		} else if ("step".equals(action)) {
+			// The fixed action for this slice: attack the target. This is where the hit's damage is
+			// synchronously ROLLED (accuracy + damage roll happen inside PendingHit's constructor,
+			// called from Combat.attack() -> performNewAttack()) and QUEUED onto the target NPC's own
+			// HitQueue - but NOT yet applied to its hitpoints. That only happens later this same tick,
+			// when the target's own NPC.process() runs (a separate, later loop in World.process()).
+			if (target != null) {
+				this.getCombat().attack(target);
+				// Read back what got queued for the target, right after attack() and before its own
+				// NPC.process() has run this tick: 0 if attack() didn't roll a new hit this tick
+				// (still on cooldown), otherwise the just-rolled damage sitting in its HitQueue.
+				final int rolledDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
+				final int injectNpcHp = target.getHitpoints();
+				logger.info("[MinimalEnv] INJECT read (right after attack applied, pre-resolution): npc_hp="
+						+ injectNpcHp + " rolled_damage=" + rolledDamage);
+			} else {
+				logger.info("[MinimalEnv] step received, no attack applied (no target)");
+			}
 		} else {
-			logger.info("[MinimalEnv] step received (valid=" + validStep + "), no attack applied"
-					+ (target == null ? " (no target)" : ""));
+			logger.info("[MinimalEnv] action received (valid=false), nothing applied");
 		}
 
 		// Defer resolution to flush-drain time - do NOT complete the future here.
+		final String finalAction = action;
+		final String finalResetErrorPayload = resetErrorPayload;
 		onFlushTasks.add(() -> {
-			final String payload = validStep
-					? buildObservationPayload()
-					: "{\"error\":\"expected a step action\"}";
-			logger.info("[MinimalEnv] resolving step future at flush-drain: " + payload);
+			final String payload;
+			if (finalResetErrorPayload != null) {
+				// Already a fully-formed error payload (may carry "retryable" - see
+				// performReset()) - use as-is, don't re-wrap.
+				payload = finalResetErrorPayload;
+			} else if ("step".equals(finalAction) || "reset".equals(finalAction)) {
+				payload = buildObservationPayload();
+			} else {
+				payload = "{\"error\":\"expected a step or reset action\"}";
+			}
+			logger.info("[MinimalEnv] resolving action future at flush-drain: " + payload);
 			step.future().complete(payload);
 		});
+	}
+
+	/**
+	 * Reset verb: restores the bot and target NPC to full HP at their known arena tiles, clears
+	 * combat state on both via the real cancel path (Combat.reset() - PROJECT_STATE.md section 15
+	 * Group A), and clears any pending hits in both HitQueues so a hit rolled just before the
+	 * reset cannot silently land afterward. Runs entirely on the tick thread, called from
+	 * onPacketsProcessed() before this tick's own Combat.process()/HitQueue.process() drain (see
+	 * Player.java: PlayerPacketsProcessedEvent dispatches before getCombat().process() within the
+	 * same Player.process() call) - so clearing here is early enough to catch a hit the NPC-combat
+	 * barrier already queued this same tick, before it would otherwise drain later in this same
+	 * tick's Player.process() continuation.
+	 * <p>
+	 * Returns null on success (caller then builds the normal observation payload via
+	 * buildObservationPayload(), same as a step response - payload shape unchanged). Returns a
+	 * fully-formed JSON error payload string on failure - never throws (PROJECT_STATE.md section
+	 * 8.1: an uncaught throw here would be caught by World.java's per-player GameSyncTask and call
+	 * requestLogout() on this bot).
+	 */
+	private String performReset() {
+		try {
+			if (target == null) {
+				// Let buildObservationPayload()'s own null-check produce the error - same
+				// convention step already relies on when target is unset.
+				return null;
+			}
+
+			if (this.isDying()) {
+				// Player.setHitpoints() silently no-ops while isDying (PlayerDeathTask's ~3-tick
+				// death sequence, ticks 2->0) - forcing a heal past the engine's own death state
+				// machine risks inconsistent state, so don't try. Honest transient error instead:
+				// "retryable" is LOAD-BEARING - it's how the Python side distinguishes this from a
+				// hard error (target==null, bad NPC data). Do not drop it.
+				logger.warning("[MinimalEnv] reset requested while bot is dying - transient, retryable");
+				return "{\"error\":\"bot is currently dying, retry reset\",\"retryable\":true}";
+			}
+
+			this.getCombat().reset();
+			this.getCombat().getHitQueue().clear();
+			this.moveTo(ARENA_BOT_LOCATION);
+			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
+
+			if (target.getHitpoints() <= 0 || target.isDying()) {
+				// Dead or mid-death-task: NPCDeathTask.stop() removes the old object from the
+				// world regardless of any HP we set on it (World.getRemoveNPCQueue()), so don't
+				// try to revive it - spawn fresh, the same two-call pattern Server.java used at
+				// boot, and REPOINT target. Dropping this repoint reproduces the exact
+				// stale-dead-reference bug this branch exists to avoid.
+				final NPC freshNpc = NPC.create(target.getId(), ARENA_NPC_LOCATION);
+				World.getAddNPCQueue().add(freshNpc);
+				this.target = freshNpc;
+				logger.info("[MinimalEnv] reset: NPC was dead/dying, spawned fresh instance and repointed target");
+			} else {
+				target.getCombat().reset();
+				target.getCombat().getHitQueue().clear();
+				target.moveTo(ARENA_NPC_LOCATION);
+				target.setHitpoints(target.getCurrentDefinition().getHitpoints());
+				logger.info("[MinimalEnv] reset: NPC healed and repositioned in place");
+			}
+
+			return null;
+		} catch (Exception e) {
+			logger.severe("[MinimalEnv] reset failed unexpectedly: " + e);
+			return "{\"error\":\"reset failed: " + e.getMessage() + "\"}";
+		}
 	}
 
 	/**
@@ -261,13 +352,22 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		return "{\"hp_fraction\":" + hpFraction + ",\"enemy_hp_fraction\":" + enemyHpFraction + "}";
 	}
 
-	private boolean isStepAction(String message) {
+	/**
+	 * Parses the requested action from a raw client message. Returns "step" or "reset" for a
+	 * recognized action, or null for anything else (missing/unrecognized "action" field,
+	 * malformed JSON) - null routes to the existing "expected a step or reset action" error path.
+	 */
+	private String parseAction(String message) {
 		try {
 			final JsonObject json = JsonParser.parseString(message).getAsJsonObject();
-			return json.has("action") && "step".equals(json.get("action").getAsString());
+			if (!json.has("action")) {
+				return null;
+			}
+			final String action = json.get("action").getAsString();
+			return ("step".equals(action) || "reset".equals(action)) ? action : null;
 		} catch (Exception e) {
-			logger.warning("[MinimalEnv] failed to parse step message: " + e);
-			return false;
+			logger.warning("[MinimalEnv] failed to parse action message: " + e);
+			return null;
 		}
 	}
 

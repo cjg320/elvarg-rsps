@@ -84,6 +84,16 @@ public class HitQueue {
 	}
 
 	/**
+	 * Clears all pending hits and pending damage, discarding anything not yet applied. Added for
+	 * the RL reset verb (com.elvarg.rl.MinimalEnvironmentBot) so a hit rolled just before a reset
+	 * cannot silently land afterward - not used anywhere else in stock engine logic.
+	 */
+	public void clear() {
+		pendingHits.clear();
+		pendingDamage.clear();
+	}
+
+	/**
 	 * Add a pending hit to our queue.
 	 *
 	 * @param c_h
