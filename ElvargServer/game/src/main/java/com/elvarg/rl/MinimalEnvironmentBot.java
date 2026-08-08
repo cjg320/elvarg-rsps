@@ -10,6 +10,7 @@ import com.elvarg.game.event.EventDispatcher;
 import com.elvarg.game.event.events.PlayerPacketsFlushedEvent;
 import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
 import com.elvarg.game.model.Location;
+import com.elvarg.game.model.Skill;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -203,18 +204,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	}
 
 	/**
-	 * Observation-payload swap, first vertical slice: enemy_hp_fraction alone, matching
-	 * agent/observation.py's contract exactly - {@code _clip01(npc.current_hp / npc.max_hp)},
-	 * i.e. {@code max(0.0, min(1.0, current / max))}. Called from inside the flush-drain
-	 * Runnable queued above, so target.getHitpoints() here is read at flush-drain. Post-flip
-	 * (elvarg-rsps commit 2e5d5c2c, NPC-combat now runs before player-combat), the bot's own
-	 * outgoing hit lands with a +1-tick lag: a hit rolled on tick N is not reflected in this
-	 * flush read until tick N+1. This is CORRECT and OSRS-faithful, not a bug - do not "fix"
-	 * it to same-tick. The by-construction guarantee that no half-applied mid-tick state is
-	 * ever visible at flush is order-independent and still holds (PROJECT_STATE.md section
-	 * 8.2). Live-confirmed on this emitted field itself: 11/11 landed hits in a full kill
-	 * staircase showed roll-on-N / visible-on-N+1, zero same-tick, the section 8.2 tripwire
-	 * did not fire.
+	 * Observation-payload swap: enemy_hp_fraction (outgoing/NPC HP) and hp_fraction (the bot's
+	 * own HP), each matching agent/observation.py's contract exactly -
+	 * {@code _clip01(current / max)}, i.e. {@code max(0.0, min(1.0, current / max))}. Called
+	 * from inside the flush-drain Runnable queued above, so both target.getHitpoints() and
+	 * this.getHitpoints() here are read at flush-drain. Post-flip (elvarg-rsps commit
+	 * 2e5d5c2c, NPC-combat now runs before player-combat), the two directions have DIFFERENT
+	 * timing at this same flush read: the bot's own outgoing hit lands with a +1-tick lag
+	 * (rolled on tick N, not reflected here until tick N+1 - live-confirmed, 11/11 landed hits
+	 * in a full kill staircase), while incoming (NPC-&gt;player) damage is same-tick (rolled on
+	 * tick N, already applied by this same tick's flush - live-confirmed, 7/7 landed hits).
+	 * Both are CORRECT and OSRS-faithful, not bugs - do not "fix" either to match the other.
+	 * The by-construction guarantee that no half-applied mid-tick state is ever visible at
+	 * flush is order-independent and still holds (PROJECT_STATE.md section 8.2).
 	 */
 	private String buildObservationPayload() {
 		if (target == null) {
@@ -240,10 +242,23 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					+ " - refusing to emit enemy_hp_fraction; check npc_defs.json hitpoints");
 			return "{\"error\":\"observation payload: npc max hp is " + npcMaxHp + "\"}";
 		}
+		final int botMaxHp = this.getSkillManager().getMaxLevel(Skill.HITPOINTS);
+		if (botMaxHp <= 0) {
+			// Same guard convention as npcMaxHp above, applied to the bot's own HITPOINTS level
+			// (the analogous "max HP" source for a player - see PlayerUpdating.java's own use of
+			// getMaxLevel(Skill.HITPOINTS) for the client HP bar). Error payload, not throw; never
+			// silently emit hp_fraction=0.0, which is indistinguishable from a dead bot.
+			logger.severe("[MinimalEnv] bot max HP is " + botMaxHp
+					+ " - refusing to emit hp_fraction; check the bot's HITPOINTS skill level");
+			return "{\"error\":\"observation payload: bot max hp is " + botMaxHp + "\"}";
+		}
 		final int npcCurrentHp = target.getHitpoints();
-		final double rawFraction = (double) npcCurrentHp / (double) npcMaxHp;
-		final double enemyHpFraction = Math.max(0.0, Math.min(1.0, rawFraction));
-		return "{\"enemy_hp_fraction\":" + enemyHpFraction + "}";
+		final double npcRawFraction = (double) npcCurrentHp / (double) npcMaxHp;
+		final double enemyHpFraction = Math.max(0.0, Math.min(1.0, npcRawFraction));
+		final int botCurrentHp = this.getHitpoints();
+		final double botRawFraction = (double) botCurrentHp / (double) botMaxHp;
+		final double hpFraction = Math.max(0.0, Math.min(1.0, botRawFraction));
+		return "{\"hp_fraction\":" + hpFraction + ",\"enemy_hp_fraction\":" + enemyHpFraction + "}";
 	}
 
 	private boolean isStepAction(String message) {
