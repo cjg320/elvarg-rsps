@@ -206,11 +206,15 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * Observation-payload swap, first vertical slice: enemy_hp_fraction alone, matching
 	 * agent/observation.py's contract exactly - {@code _clip01(npc.current_hp / npc.max_hp)},
 	 * i.e. {@code max(0.0, min(1.0, current / max))}. Called from inside the flush-drain
-	 * Runnable queued above, so target.getHitpoints() here is the POST-resolution read (the
-	 * target NPC's own NPC.process() has already run this tick by flush time - see the
-	 * by-construction guarantee, PROJECT_STATE.md section 8.2) - the same point Stage 1's
-	 * instrumentation measured this fraction from and confirmed monotone, bounded, and
-	 * floored-at-0 for Hobgoblin 3049 (max HP constant 29 across a full fight).
+	 * Runnable queued above, so target.getHitpoints() here is read at flush-drain. Post-flip
+	 * (elvarg-rsps commit 2e5d5c2c, NPC-combat now runs before player-combat), the bot's own
+	 * outgoing hit lands with a +1-tick lag: a hit rolled on tick N is not reflected in this
+	 * flush read until tick N+1. This is CORRECT and OSRS-faithful, not a bug - do not "fix"
+	 * it to same-tick. The by-construction guarantee that no half-applied mid-tick state is
+	 * ever visible at flush is order-independent and still holds (PROJECT_STATE.md section
+	 * 8.2). Live-confirmed on this emitted field itself: 11/11 landed hits in a full kill
+	 * staircase showed roll-on-N / visible-on-N+1, zero same-tick, the section 8.2 tripwire
+	 * did not fire.
 	 */
 	private String buildObservationPayload() {
 		if (target == null) {
