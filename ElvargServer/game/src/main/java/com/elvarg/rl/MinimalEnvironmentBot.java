@@ -51,6 +51,16 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	private static final Location ARENA_BOT_LOCATION = new Location(3089, 3466);
 	private static final Location ARENA_NPC_LOCATION = new Location(3090, 3466);
 
+	/**
+	 * Index of "attack" within agent/actions.py's COMBAT_ACTIONS list on the Python side:
+	 * {@code ["nothing", "attack", "eat_food", "drink_prayer_pot", "drink_combat_pot",
+	 * "drink_defence_pot", "toggle_run"]} - "attack" is COMBAT_ACTIONS[1]. Hardcoded here rather
+	 * than read from a shared source (no cross-language import path exists) - if that list's
+	 * ordering ever changes, this drifts silently. Every other combat-head value currently
+	 * collapses to suppress (see the step branch below).
+	 */
+	private static final int COMBAT_ACTION_ATTACK_INDEX = 1;
+
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
 
@@ -189,20 +199,52 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// own doc for the full reset design (PROJECT_STATE.md section 13).
 			resetErrorPayload = performReset();
 		} else if ("step".equals(action)) {
-			// The fixed action for this slice: attack the target. This is where the hit's damage is
-			// synchronously ROLLED (accuracy + damage roll happen inside PendingHit's constructor,
-			// called from Combat.attack() -> performNewAttack()) and QUEUED onto the target NPC's own
-			// HitQueue - but NOT yet applied to its hitpoints. That only happens later this same tick,
-			// when the target's own NPC.process() runs (a separate, later loop in World.process()).
 			if (target != null) {
-				this.getCombat().attack(target);
-				// Read back what got queued for the target, right after attack() and before its own
-				// NPC.process() has run this tick: 0 if attack() didn't roll a new hit this tick
-				// (still on cooldown), otherwise the just-rolled damage sitting in its HitQueue.
-				final int rolledDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
-				final int injectNpcHp = target.getHitpoints();
-				logger.info("[MinimalEnv] INJECT read (right after attack applied, pre-resolution): npc_hp="
-						+ injectNpcHp + " rolled_damage=" + rolledDamage);
+				final int combatActionIndex = parseCombatActionIndex(step.message());
+				if (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX) {
+					// This is where the hit's damage is synchronously ROLLED (accuracy + damage
+					// roll happen inside PendingHit's constructor, called from Combat.attack() ->
+					// performNewAttack()) and QUEUED onto the target NPC's own HitQueue - but NOT
+					// yet applied to its hitpoints. That only happens later this same tick, when
+					// the target's own NPC.process() runs (a separate, later loop in
+					// World.process()).
+					this.getCombat().attack(target);
+					// Read back what got queued for the target, right after attack() and before its own
+					// NPC.process() has run this tick: 0 if attack() didn't roll a new hit this tick
+					// (still on cooldown), otherwise the just-rolled damage sitting in its HitQueue.
+					final int rolledDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
+					final int injectNpcHp = target.getHitpoints();
+					logger.info("[MinimalEnv] INJECT read (right after attack applied, pre-resolution): npc_hp="
+							+ injectNpcHp + " rolled_damage=" + rolledDamage);
+				} else {
+					// SUPPRESS: attack-only scope (Model A, PROJECT_STATE.md section 15 Group A
+					// open question 3) - every other combat-head value currently collapses here,
+					// including the not-yet-wired consumable actions (eat_food/drink_*/
+					// toggle_run pending their own slice), not just "nothing". Move and prayer
+					// head values are ignored entirely.
+					//
+					// Combat.reset() here is NOT optional cleanup - it's the only thing that
+					// actually suppresses the attack. `target` stays set across ticks once first
+					// attacked, and Combat.process() (Player.java:404) re-attacks autonomously off
+					// that persisted target every off-cooldown tick regardless of what we inject
+					// (PROJECT_STATE.md section 8.1's SIXTH attack-driving path) - simply not
+					// calling attack() this tick would NOT stop that autonomous call from firing
+					// later this same tick. Clearing target here does: Combat.performNewAttack()
+					// no-ops at target==null (Combat.java:88).
+					//
+					// TRIPWIRE - this depends on dispatch ORDER, not just presence: this code runs
+					// from the PlayerPacketsProcessedEvent dispatch (Player.java:397), which
+					// precedes getCombat().process() (Player.java:404) within the SAME
+					// Player.process() call, so our reset() lands before that tick's autonomous
+					// attempt ever runs. If this dispatch point ever moves to fire AFTER
+					// getCombat().process(), BOTH the attack and suppress paths break silently:
+					// attack() would land its hit a tick late, and reset() would clear the target
+					// only after the autonomous call already fired, so suppression would stop
+					// suppressing.
+					this.getCombat().reset();
+					logger.info("[MinimalEnv] step received, action suppressed (combat_action_index="
+							+ combatActionIndex + ")");
+				}
 			} else {
 				logger.info("[MinimalEnv] step received, no attack applied (no target)");
 			}
@@ -368,6 +410,24 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		} catch (Exception e) {
 			logger.warning("[MinimalEnv] failed to parse action message: " + e);
 			return null;
+		}
+	}
+
+	/**
+	 * Parses the combat-head index out of a step message's {@code body.action} array
+	 * (index 1 of the [move, combat, prayer] triple - agent/actions.py's
+	 * {@code get_action_space_nvec()} / {@code decode_action()} ordering). Move (index 0) and
+	 * prayer (index 2) are read by nothing yet - attack-only scope. Returns -1 (never a valid
+	 * COMBAT_ACTIONS index, so it collapses to suppress) on any parse failure - a malformed or
+	 * missing action array must never be silently treated as "attack".
+	 */
+	private int parseCombatActionIndex(String message) {
+		try {
+			final JsonObject json = JsonParser.parseString(message).getAsJsonObject();
+			return json.getAsJsonObject("body").getAsJsonArray("action").get(1).getAsInt();
+		} catch (Exception e) {
+			logger.warning("[MinimalEnv] failed to parse combat action index, defaulting to suppress: " + e);
+			return -1;
 		}
 	}
 
