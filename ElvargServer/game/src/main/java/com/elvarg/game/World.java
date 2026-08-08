@@ -148,6 +148,20 @@ public class World {
 		}
 
 		// Handle synchronization tasks.
+		// NPC-combat runs before player-combat, matching real OSRS (NPCs are processed earlier
+		// than players each tick - OSRS Wiki, Hit delay; see PROJECT_STATE.md section 15, Group A).
+		executor.sync(new GameSyncTask(false, false) {
+			@Override
+			public void execute(int index) {
+				NPC npc = npcs.get(index);
+				try {
+					npc.process();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+
 		executor.sync(new GameSyncTask(true, false) {
 			@Override
 			public void execute(int index) {
@@ -157,18 +171,6 @@ public class World {
 				} catch (Exception e) {
 					e.printStackTrace();
 					player.requestLogout();
-				}
-			}
-		});
-
-		executor.sync(new GameSyncTask(false, false) {
-			@Override
-			public void execute(int index) {
-				NPC npc = npcs.get(index);
-				try {
-					npc.process();
-				} catch (Exception e) {
-					e.printStackTrace();
 				}
 			}
 		});
