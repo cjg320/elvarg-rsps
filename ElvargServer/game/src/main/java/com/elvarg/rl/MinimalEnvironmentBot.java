@@ -1,6 +1,7 @@
 package com.elvarg.rl;
 
 import com.elvarg.game.World;
+import com.elvarg.game.collision.RegionManager;
 import com.elvarg.game.content.combat.FightType;
 import com.elvarg.game.definition.PlayerBotDefinition;
 import com.elvarg.game.entity.impl.npc.NPC;
@@ -60,6 +61,27 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * collapses to suppress (see the step branch below).
 	 */
 	private static final int COMBAT_ACTION_ATTACK_INDEX = 1;
+
+	/**
+	 * (dx, dy) deltas for agent/actions.py's MOVE_ACTIONS
+	 * {@code ["idle", "N", "S", "E", "W", "NE", "NW", "SE", "SW"]}, index-for-index. Elvarg's own
+	 * {@link com.elvarg.game.model.Direction} enum uses +y = north (NORTH(1, 0, 1), i.e. x=0,y=1)
+	 * -- confirmed from source, not assumed -- which happens to be IDENTICAL to sim/grid.py's own
+	 * DIRECTIONS dict (N=(0,1), S=(0,-1), E=(1,0), W=(-1,0), NE=(1,1), NW=(-1,1), SE=(1,-1),
+	 * SW=(-1,-1)); no axis-flip needed between the two encodings. Index 0 (idle) is never looked
+	 * up -- applyMoveAction() returns before indexing for that case.
+	 */
+	private static final int[][] MOVE_DELTAS = {
+			{0, 0},   // idle (unused)
+			{0, 1},   // N
+			{0, -1},  // S
+			{1, 0},   // E
+			{-1, 0},  // W
+			{1, 1},   // NE
+			{-1, 1},  // NW
+			{1, -1},  // SE
+			{-1, -1}, // SW
+	};
 
 	/**
 	 * Normalization ceilings for the two static enemy-attribute fields below, matching
@@ -209,29 +231,59 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// own doc for the full reset design (PROJECT_STATE.md section 13).
 			resetErrorPayload = performReset();
 		} else if ("step".equals(action)) {
+			// MOVE HEAD (index 0) applied FIRST, before the combat decode below - this ordering IS
+			// the same-tick move+attack semantics decision (PROJECT_STATE.md section 13's move-head
+			// pass). See applyMoveAction()'s own doc for the full reasoning; short version: idle is
+			// side-effect-free, and a real direction hard-cancels combat (target/combatFollowing) via
+			// the same walkToReset() path a real click-to-walk packet uses
+			// (MovementPacketListener.execute(), PROJECT_STATE.md section 15 Group A's injection-path
+			// leaning, now locked in). Calling this BEFORE the combat decode means an "attack" chosen
+			// the SAME tick re-sets the target AFTER any move-triggered cancel (see the attack branch
+			// below) - movement still owns the feet, but doesn't blanket-veto a same-tick attack.
+			applyMoveAction(parseMoveActionIndex(step.message()));
+
 			if (target != null) {
 				final int combatActionIndex = parseCombatActionIndex(step.message());
 				if (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX) {
-					// This is where the hit's damage is synchronously ROLLED (accuracy + damage
-					// roll happen inside PendingHit's constructor, called from Combat.attack() ->
-					// performNewAttack()) and QUEUED onto the target NPC's own HitQueue - but NOT
-					// yet applied to its hitpoints. That only happens later this same tick, when
-					// the target's own NPC.process() runs (a separate, later loop in
-					// World.process()).
-					this.getCombat().attack(target);
-					// Read back what got queued for the target, right after attack() and before its own
-					// NPC.process() has run this tick: 0 if attack() didn't roll a new hit this tick
-					// (still on cooldown), otherwise the just-rolled damage sitting in its HitQueue.
-					final int rolledDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
-					final int injectNpcHp = target.getHitpoints();
-					logger.info("[MinimalEnv] INJECT read (right after attack applied, pre-resolution): npc_hp="
-							+ injectNpcHp + " rolled_damage=" + rolledDamage);
+					// DEFERRED RESOLUTION, not an immediate attack() call - this is the other half of
+					// the same-tick move+attack semantics decision (PROJECT_STATE.md section 13).
+					// Player.process()'s call order (Player.java) is: dispatch
+					// PlayerPacketsProcessedEvent (this code, :397) -> getMovementQueue().process()
+					// (:401, applies THIS tick's movement, including anything applyMoveAction() just
+					// queued above) -> getCombat().process() (:404, which calls
+					// performNewAttack(false) whenever target != null and off cooldown - the SIXTH
+					// path, PROJECT_STATE.md section 8.1). Setting only the target here (not calling
+					// attack()/performNewAttack() synchronously) means the actual range check happens
+					// at :404, AFTER :401's movement has already been applied - i.e. against the
+					// POST-movement position, matching docs/PHASE2_DESIGN.md's within-tick order
+					// ("Player attack resolves against the POST-movement position") as a natural
+					// consequence of Elvarg's OWN existing call order, not by restructuring it.
+					// performNewAttack() unconditionally sets combatFollowing/mobileInteraction itself
+					// (Combat.java:96-99) whenever target != null, so nothing is lost by not calling
+					// attack()'s own wrapper. Verified this does NOT touch the k=1 outgoing-lag fact
+					// (PROJECT_STATE.md section 8.2): World.process() runs the ENTIRE player-combat
+					// barrier (which is Player.process(), including both :397 and :404) as one
+					// GameSyncTask, strictly after the separate NPC-combat barrier has already fully
+					// completed for this tick (World.java) - deferring from :397 to :404 stays inside
+					// that same barrier, so it cannot change which GLOBAL barrier the outgoing hit
+					// gets queued into.
+					//
+					// The former "INJECT read right after attack() applied, pre-resolution" diagnostic
+					// log that used to live here is gone: there is nothing to read yet at this point in
+					// the tick under deferred resolution (the hit isn't rolled until :404). The
+					// FLUSH read logged in onPacketsFlushed() below remains the authoritative
+					// post-resolution observation point (PROJECT_STATE.md section 8.2's by-construction
+					// guarantee is unaffected by this change).
+					this.getCombat().setTarget(target);
+					logger.info("[MinimalEnv] step received, attack target set (resolves post-movement in "
+							+ "getCombat().process())");
 				} else {
 					// SUPPRESS: attack-only scope (Model A, PROJECT_STATE.md section 15 Group A
 					// open question 3) - every other combat-head value currently collapses here,
 					// including the not-yet-wired consumable actions (eat_food/drink_*/
-					// toggle_run pending their own slice), not just "nothing". Move and prayer
-					// head values are ignored entirely.
+					// toggle_run pending their own slice), not just "nothing". Prayer head values
+					// are ignored entirely (masked-inert, section 13's ACTION-SPACE CONTRACT
+					// DECISION).
 					//
 					// Combat.reset() here is NOT optional cleanup - it's the only thing that
 					// actually suppresses the attack. `target` stays set across ticks once first
@@ -240,7 +292,8 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					// (PROJECT_STATE.md section 8.1's SIXTH attack-driving path) - simply not
 					// calling attack() this tick would NOT stop that autonomous call from firing
 					// later this same tick. Clearing target here does: Combat.performNewAttack()
-					// no-ops at target==null (Combat.java:88).
+					// no-ops at target==null (Combat.java:88). Redundant-but-harmless if
+					// applyMoveAction() above already cleared it via walkToReset() this same tick.
 					//
 					// TRIPWIRE - this depends on dispatch ORDER, not just presence: this code runs
 					// from the PlayerPacketsProcessedEvent dispatch (Player.java:397), which
@@ -248,9 +301,9 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					// Player.process() call, so our reset() lands before that tick's autonomous
 					// attempt ever runs. If this dispatch point ever moves to fire AFTER
 					// getCombat().process(), BOTH the attack and suppress paths break silently:
-					// attack() would land its hit a tick late, and reset() would clear the target
-					// only after the autonomous call already fired, so suppression would stop
-					// suppressing.
+					// the deferred attack-target-set above would resolve a tick late, and reset()
+					// would clear the target only after the autonomous call already fired, so
+					// suppression would stop suppressing.
 					this.getCombat().reset();
 					logger.info("[MinimalEnv] step received, action suppressed (combat_action_index="
 							+ combatActionIndex + ")");
@@ -318,6 +371,12 @@ public class MinimalEnvironmentBot extends PlayerBot {
 
 			this.getCombat().reset();
 			this.getCombat().getHitQueue().clear();
+			// Same leak-prevention rationale as HitQueue.clear() above, now that the move head can
+			// queue steps: a leftover queued waypoint from just before this reset (should not
+			// normally happen under the one-action-per-tick blocking protocol, but cheap to guard)
+			// would otherwise survive the teleport below and walk the freshly-reset bot off its
+			// arena tile on the very next tick.
+			this.getMovementQueue().reset();
 			this.moveTo(ARENA_BOT_LOCATION);
 			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
 
@@ -458,10 +517,11 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	/**
 	 * Parses the combat-head index out of a step message's {@code body.action} array
 	 * (index 1 of the [move, combat, prayer] triple - agent/actions.py's
-	 * {@code get_action_space_nvec()} / {@code decode_action()} ordering). Move (index 0) and
-	 * prayer (index 2) are read by nothing yet - attack-only scope. Returns -1 (never a valid
-	 * COMBAT_ACTIONS index, so it collapses to suppress) on any parse failure - a malformed or
-	 * missing action array must never be silently treated as "attack".
+	 * {@code get_action_space_nvec()} / {@code decode_action()} ordering). Prayer (index 2) is
+	 * read by nothing yet - masked-inert (PROJECT_STATE.md section 13's ACTION-SPACE CONTRACT
+	 * DECISION). Returns -1 (never a valid COMBAT_ACTIONS index, so it collapses to suppress) on
+	 * any parse failure - a malformed or missing action array must never be silently treated as
+	 * "attack".
 	 */
 	private int parseCombatActionIndex(String message) {
 		try {
@@ -470,6 +530,83 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		} catch (Exception e) {
 			logger.warning("[MinimalEnv] failed to parse combat action index, defaulting to suppress: " + e);
 			return -1;
+		}
+	}
+
+	/**
+	 * Parses the move-head index out of a step message's {@code body.action} array (index 0 of
+	 * the [move, combat, prayer] triple). Returns 0 (idle - never a valid direction, so
+	 * applyMoveAction() no-ops) on any parse failure or out-of-range value - a malformed or
+	 * missing action array must never be silently treated as a real direction.
+	 */
+	private int parseMoveActionIndex(String message) {
+		try {
+			final JsonObject json = JsonParser.parseString(message).getAsJsonObject();
+			final int index = json.getAsJsonObject("body").getAsJsonArray("action").get(0).getAsInt();
+			return (index >= 0 && index < MOVE_DELTAS.length) ? index : 0;
+		} catch (Exception e) {
+			logger.warning("[MinimalEnv] failed to parse move action index, defaulting to idle: " + e);
+			return 0;
+		}
+	}
+
+	/**
+	 * Applies the move head (PROJECT_STATE.md section 13's move-head pass). Index 0 (idle) is a
+	 * true no-op - it does not touch combat or movement state at all, so an idle move never
+	 * disturbs an in-progress fight. A real direction (1-8) does two things, in order:
+	 * <p>
+	 * 1. INJECTION PATH - routes through the same hard-cancel a real click-to-walk packet uses
+	 * (MovementPacketListener.execute(): {@code movementQueue.reset()} then
+	 * {@code movementQueue.walkToReset()}, which internally calls {@code Combat.reset()} -
+	 * PROJECT_STATE.md section 15 Group A's Q1/leaning recommendation, now locked in). This is
+	 * deliberately NOT a direct write into the queued {@code points} bypassing the cancel (section
+	 * 15 Group A: that would leave the auto-chase (Q2, {@code MovementQueue.processCombatFollowing()})
+	 * fighting the injected move). Called even when combat_action == attack this same tick - see
+	 * onPacketsProcessed()'s combat decode, which re-sets the target AFTER this cancel runs, so an
+	 * attack survives a same-tick move (matches docs/PHASE2_DESIGN.md's "movement head owns the
+	 * feet, attack still resolves if in range" intent) while a completed cancel with no attack
+	 * chosen this tick doesn't autonomously resume.
+	 * <p>
+	 * 2. QUEUES the actual step(s): one tile for a walk, TWO tiles in the same direction for a run
+	 * - matching sim/combat_env.py's own semantics (movement_tiles_this_tick() -> 2 when running,
+	 * applied as a single dx*2,dy*2 displacement for one directional choice) rather than Elvarg's
+	 * OWN native running model (which only consumes a second queued point per tick if a
+	 * multi-tile path was already queued, e.g. from a distant click) - our per-tick single-
+	 * direction action has no such multi-tile path to draw from, so without this explicit
+	 * second-step queue, run mode would never produce 2-tile/tick displacement under this action
+	 * granularity. RECORDED AS A DESIGN CHOICE, not a rediscovery of Elvarg's own mechanic - see
+	 * the doc update from this pass for the full note. Each step is walkability-checked via
+	 * RegionManager.canMove() before being queued (mirroring MovementQueue.canWalk()'s own
+	 * pre-check idiom, since MovementQueue.process()'s own per-tick consumption only checks NPC
+	 * occupancy via canWalkTo(), not terrain) - a blocked tile is logged and simply not queued,
+	 * never silently teleported through.
+	 */
+	private void applyMoveAction(int moveActionIndex) {
+		if (moveActionIndex <= 0) {
+			return;
+		}
+
+		this.getMovementQueue().reset();
+		this.getMovementQueue().walkToReset();
+
+		final int dx = MOVE_DELTAS[moveActionIndex][0];
+		final int dy = MOVE_DELTAS[moveActionIndex][1];
+		final int size = this.size();
+		final Location current = this.getLocation();
+		final Location step1 = current.transform(dx, dy);
+		if (!RegionManager.canMove(current, step1, size, size, this.getPrivateArea())) {
+			logger.info("[MinimalEnv] move blocked by terrain: " + current + " -> " + step1);
+			return;
+		}
+		this.getMovementQueue().walkStep(dx, dy);
+
+		if (this.isRunning()) {
+			final Location step2 = step1.transform(dx, dy);
+			if (RegionManager.canMove(step1, step2, size, size, this.getPrivateArea())) {
+				this.getMovementQueue().addStep(step2);
+			} else {
+				logger.info("[MinimalEnv] second run-step blocked by terrain: " + step1 + " -> " + step2);
+			}
 		}
 	}
 
