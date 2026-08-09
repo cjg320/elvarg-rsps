@@ -646,14 +646,33 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		if (target != null) {
 			// FLUSH read (post-resolution): by this point the target NPC's own NPC.process() has
 			// already run this tick (it's a separate, later loop in World.process()), so any hit
-			// queued during this tick's onPacketsProcessed should already be applied to its HP.
-			// This is the direct counterpart to the INJECT read logged in onPacketsProcessed -
-			// comparing the two per-tick is what makes deferred-resolution observable.
+			// queued during THIS tick's player-combat barrier (which runs AFTER that NPC-combat
+			// barrier, post-flip - PROJECT_STATE.md section 8.2) is NOT yet applied to its HP -
+			// it drains at the target's NEXT process() call, i.e. next tick's NPC-combat barrier.
+			//
+			// PENDING-DAMAGE READ restores section 8.2's outgoing-hit tripwire detector, moved
+			// here from a since-removed INJECT-side read. The move-head pass (PROJECT_STATE.md
+			// section 13) changed the attack path from a synchronous Combat.attack() call (which
+			// let onPacketsProcessed() read target.getHitQueue().getAccumulatedDamage() itself,
+			// immediately after the roll) to a deferred Combat.setTarget() that resolves later,
+			// autonomously, inside getCombat().process() - our own code no longer has a
+			// synchronous moment right after the roll to read from. getAccumulatedDamage() sums
+			// damage that has been ROLLED but not yet APPLIED to hitpoints (HitQueue.java) - since
+			// a hit queued this tick can't drain until the target's NEXT process() call, reading
+			// it HERE, at flush (this tick, after the target's own drain point has already
+			// passed), is equivalent evidence to the old INJECT read: nonzero means "a hit
+			// resolved this tick, still pending" (expected, k=1); the section 8.2 ANOMALY is an
+			// outgoing hit whose HP effect appears the SAME tick it was queued, or an incoming hit
+			// (already same-tick, section 8.2's Field-level confirmation) whose effect is delayed
+			// to next tick - either would show as an inconsistency between this pending-damage
+			// read and the npc_hp trace across consecutive FLUSH lines.
 			final int npcHp = target.getHitpoints();
+			final int npcPendingDamage = target.getCombat().getHitQueue().getAccumulatedDamage();
 			final int playerHp = this.getHitpoints();
 			final int distance = this.getLocation().getDistance(target.getLocation());
 			logger.info("[MinimalEnv] FLUSH read (post-resolution) #" + flushCounter + ": npc_hp=" + npcHp
-					+ " player_hp=" + playerHp + " distance=" + distance);
+					+ " npc_pending_damage=" + npcPendingDamage + " player_hp=" + playerHp
+					+ " distance=" + distance);
 		}
 		while (!onFlushTasks.isEmpty()) {
 			onFlushTasks.poll().run();
