@@ -379,6 +379,14 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			this.getMovementQueue().reset();
 			this.moveTo(ARENA_BOT_LOCATION);
 			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
+			// PROJECT_STATE.md section 13's flagged non-stationarity fix: run energy was previously
+			// left untouched by reset (only HP/position/combat state were restored), so it drained
+			// monotonically across an episode's running use and never recovered at episode boundaries
+			// - a hidden moving target for a policy whose combat head actively reaches for run state
+			// (toggle_run was 43.8% of the frozen policy's choices in the Stage-1 eval). Same
+			// full-restore value (100) as the existing admin-restore precedent (Player.java's
+			// setRunEnergy(100) call in its own full-restore path) - not a new/guessed constant.
+			this.setRunEnergy(100);
 
 			if (target.getHitpoints() <= 0 || target.isDying()) {
 				// Dead or mid-death-task: NPCDeathTask.stop() removes the old object from the
@@ -432,6 +440,18 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * enemy_in_my_attack_range, enemy_can_reach_me, dx/dy signs) and enemy_attack_imminent_* are
 	 * deliberately NOT wired here - still zero-filled Python-side, per the section 13 scoping for
 	 * this experiment.
+	 * <p>
+	 * MONITORING-ONLY TELEMETRY (PROJECT_STATE.md section 13's retrain-shakedown pass): also emits
+	 * {@code bot_x}/{@code bot_y} (absolute position) and {@code run_energy} (0-100). These are
+	 * DELIBERATELY NOT part of the observation contract - {@code agent/observation.py}'s
+	 * {@code FIELD_ORDER} does not list them, and {@code ElvargSocketEnv._payload_to_observation()}
+	 * only ever reads its own whitelisted key set, so these extra keys are inert to the policy; they
+	 * exist purely so the Python-side training harness can log two retrain-monitoring watch items
+	 * (move-head-commanded vs actual displacement, and run-energy-over-episode, confirming the reset
+	 * fix above holds under training) without reconstructing them from indirect signals. Same
+	 * provenance standard as reward inputs (section 11's "two provenance standards" note) - training-
+	 * time scaffolding, exempt from the deployment-obtainable observation firewall, never fed to the
+	 * policy.
 	 */
 	private String buildObservationPayload() {
 		if (target == null) {
@@ -487,6 +507,9 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				+ ",\"enemy_attack_style_melee\":" + enemyAttackStyleMelee
 				+ ",\"enemy_max_hit_normalized\":" + enemyMaxHitNormalized
 				+ ",\"enemy_attack_speed\":" + enemyAttackSpeed
+				+ ",\"bot_x\":" + this.getLocation().getX()
+				+ ",\"bot_y\":" + this.getLocation().getY()
+				+ ",\"run_energy\":" + this.getRunEnergy()
 				+ "}";
 	}
 
