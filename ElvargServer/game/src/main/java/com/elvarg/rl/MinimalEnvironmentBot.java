@@ -61,6 +61,16 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 */
 	private static final int COMBAT_ACTION_ATTACK_INDEX = 1;
 
+	/**
+	 * Normalization ceilings for the two static enemy-attribute fields below, matching
+	 * agent/observation.py's MAX_MODELED_MAX_HIT (60) and MAX_ATTACK_SPEED_TICKS (10) exactly -
+	 * hardcoded here the same way COMBAT_ACTION_ATTACK_INDEX above is (no cross-language shared
+	 * constant mechanism exists), so a change to either Python constant would silently
+	 * desynchronize this pair.
+	 */
+	private static final double MAX_MODELED_MAX_HIT = 60.0;
+	private static final double MAX_ATTACK_SPEED_TICKS = 10.0;
+
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
 
@@ -350,6 +360,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * Both are CORRECT and OSRS-faithful, not bugs - do not "fix" either to match the other.
 	 * The by-construction guarantee that no half-applied mid-tick state is ever visible at
 	 * flush is order-independent and still holds (PROJECT_STATE.md section 8.2).
+	 * <p>
+	 * MINIMAL TRANSFER EXPERIMENT (PROJECT_STATE.md section 13): also emits three STATIC
+	 * enemy-attribute fields, constant for the whole fight (read from the NPC definition, not
+	 * per-tick combat state), encoded the SAME way agent/observation.py's encode_observation()
+	 * does: enemy_attack_style_melee is hardcoded 1.0 (matching observation.py's own hardcoded
+	 * one-hot - every NPC modeled so far, including this Hobgoblin, is melee; observation.py has
+	 * its own TODO to replace this once ranged/magic NPCs are added, unchanged by this commit);
+	 * enemy_max_hit_normalized and enemy_attack_speed are {@code clip01(value / ceiling)} reads
+	 * of the NPC definition's maxHit/attackSpeed against the same ceilings as
+	 * MAX_MODELED_MAX_HIT/MAX_ATTACK_SPEED_TICKS above. Geometry fields (enemy_distance,
+	 * enemy_in_my_attack_range, enemy_can_reach_me, dx/dy signs) and enemy_attack_imminent_* are
+	 * deliberately NOT wired here - still zero-filled Python-side, per the section 13 scoping for
+	 * this experiment.
 	 */
 	private String buildObservationPayload() {
 		if (target == null) {
@@ -391,7 +414,26 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		final int botCurrentHp = this.getHitpoints();
 		final double botRawFraction = (double) botCurrentHp / (double) botMaxHp;
 		final double hpFraction = Math.max(0.0, Math.min(1.0, botRawFraction));
-		return "{\"hp_fraction\":" + hpFraction + ",\"enemy_hp_fraction\":" + enemyHpFraction + "}";
+
+		// Static enemy-attribute fields (constant across the fight) -- see this method's Javadoc
+		// "MINIMAL TRANSFER EXPERIMENT" note above for the encoding-parity rationale.
+		final double enemyAttackStyleMelee = 1.0;
+		final double enemyMaxHitNormalized = clip01(
+				target.getCurrentDefinition().getMaxHit() / MAX_MODELED_MAX_HIT);
+		final double enemyAttackSpeed = clip01(
+				target.getCurrentDefinition().getAttackSpeed() / MAX_ATTACK_SPEED_TICKS);
+
+		return "{\"hp_fraction\":" + hpFraction
+				+ ",\"enemy_hp_fraction\":" + enemyHpFraction
+				+ ",\"enemy_attack_style_melee\":" + enemyAttackStyleMelee
+				+ ",\"enemy_max_hit_normalized\":" + enemyMaxHitNormalized
+				+ ",\"enemy_attack_speed\":" + enemyAttackSpeed
+				+ "}";
+	}
+
+	/** Matches agent/observation.py's _clip01(x) exactly: max(0.0, min(1.0, x)). */
+	private static double clip01(double x) {
+		return Math.max(0.0, Math.min(1.0, x));
 	}
 
 	/**
