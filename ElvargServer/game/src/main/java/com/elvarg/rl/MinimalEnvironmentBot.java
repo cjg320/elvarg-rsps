@@ -582,20 +582,62 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	}
 
 	/**
-	 * H2-INSTRUMENT (PROJECT_STATE.md section 13's H2 - FIRST VALID TEST pass), monitoring-only.
-	 * Read-only replica of the CORE geometry criterion {@code CombatFactory.canReach()} uses for
-	 * melee (same-tile exclusion, requiredDistance=1 for a non-halberd weapon per
-	 * {@code MeleeCombatMethod.attackDistance()}, diagonal exclusion for two size-1 entities per
-	 * {@code PathFinder.isDiagonalLocation()}) - deliberately NOT calling {@code canReach()} itself,
-	 * which has real mutating side effects on this exact matchup (it can call
-	 * {@code npc.getCombat().reset()} and flip the NPC's retreat-coordinator state - PROJECT_STATE.md
-	 * section 13's NPC PURSUIT FIDELITY pass traced these branches; an observation-only read must
-	 * never trigger them). Known, accepted simplification: omits {@code canReach()}'s "both
-	 * attacker and target moved this tick -> requiredDistance+1" adjustment - a minor edge case for
-	 * the stationary-combat window this instrument targets, not the walkRadius-scale gap that pass
-	 * corrected. Called at flush-drain time (after this tick's movement AND combat fully resolve),
-	 * matching the POST-movement position {@code Combat.performNewAttack()} itself resolved against
-	 * this same tick (PROJECT_STATE.md section 8.2).
+	 * H2-INSTRUMENT (PROJECT_STATE.md section 13's INSTRUMENT FIX + REMEASURE pass), monitoring-only.
+	 * Read-only replica of {@code CombatFactory.canReach()}, corrected against a FULL enumeration of
+	 * that method's branches (done as this pass's own Part 0, before touching this method - see
+	 * PROJECT_STATE.md for the full branch-by-branch record). Every branch, matched or omitted with
+	 * its omission argued from source, not assumed:
+	 * <ul>
+	 *   <li>{@code validTarget()} gate (null/registered/HP&lt;=0/untargetable/distance&gt;=40/NPC
+	 *   ownership) - OMITTED, argued irrelevant: HP&lt;=0 means the fight already ended (no
+	 *   meaningful "opportunity" concept applies to an already-dead target, and the HP-delta hit/miss
+	 *   reconstruction cannot register a hit against 0 HP regardless); distance&gt;=40 never occurs in
+	 *   this arena; ownership is unset for our programmatically-{@code NPC.create()}'d arena NPC. Also
+	 *   note {@code canReach()} itself returns {@code true} (not false) when this gate fails - an
+	 *   attack attempt against an invalid target isn't blocked HERE, it falls through to
+	 *   {@code canAttack()}'s own gating - so replicating this branch as a "false" would have been
+	 *   its own new divergence, not a fix.</li>
+	 *   <li>The NPC-retreat branch ({@code attacker.isNpc()}) - OMITTED, structurally irrelevant: this
+	 *   only executes when the ATTACKER is an NPC. For the bot's own outgoing-attack opportunity the
+	 *   attacker is always the bot (a player), so this branch never runs for this calculation - it
+	 *   governs the NPC's OWN attacks on the bot, already traced separately in the NPC PURSUIT
+	 *   FIDELITY pass.</li>
+	 *   <li>Same-tile exclusion - MATCHED ({@code this.getLocation().equals(target.getLocation())}).
+	 *   The mutating side effect ({@code MovementQueue.clippedStep()} + a {@code STEPPING_OUT} timer
+	 *   registration) is deliberately NOT replicated - an observation-only read must never mutate
+	 *   game state - but the BOOLEAN outcome (false) is preserved.</li>
+	 *   <li>{@code distance==0 && attacker.isPlayer()} - OMITTED as a separate check, argued
+	 *   equivalent: for two size-1 entities, {@code distance==0} and same-tile are the same condition,
+	 *   already covered above.</li>
+	 *   <li>{@code requiredDistance = attackDistance()} = 1 for a non-halberd weapon - MATCHED (base
+	 *   case).</li>
+	 *   <li><b>Both-attacker-and-target-moving -&gt; requiredDistance=2 - FIXED this pass</b> (was the
+	 *   omitted "accepted simplification" the HIT-RATE RECONCILIATION pass traced to ~49% false-positive
+	 *   "opportunities"). {@code canReach()} reads the TARGET's {@code isMoving()} once near its top and
+	 *   the ATTACKER's fresh at the check itself - both are per-TICK momentary flags
+	 *   ({@code MovementQueue.process()} sets {@code isMoving = moved} every tick it runs, not a
+	 *   longer-lived "mid-route" state), and by the time the bot's own {@code canReach()} call happens
+	 *   (player-combat barrier), the NPC's movement for this SAME tick already resolved in the earlier
+	 *   NPC-combat barrier - so reading both here, at flush-drain time, is the same tick-frame
+	 *   {@code canReach()} itself used, not a different one.</li>
+	 *   <li><b>Diagonal exclusion - a SECOND bug, found and fixed only by reading the full method this
+	 *   pass, not assumed from the prior version.</b> {@code canReach()}'s own condition is
+	 *   {@code !isMoving && !target.getMovementQueue().isMoving()} where {@code isMoving} IS
+	 *   {@code target.getMovementQueue().isMoving()} read earlier in the method - i.e. the same
+	 *   condition checked twice (a redundant repeat in Elvarg's own source, not two independent
+	 *   gates). The exclusion depends ONLY on the TARGET's movement; the ATTACKER's own movement does
+	 *   NOT gate it. The prior version of this replica incorrectly required BOTH sides stationary,
+	 *   which was MORE restrictive than the real check and produced the same DIRECTION of error as the
+	 *   both-moving bug (calling a diagonal tile "in range" when the target was moving but the
+	 *   attacker wasn't, a case the real engine excludes).</li>
+	 *   <li>Projectile-clipping check - OMITTED, confirmed irrelevant from source:
+	 *   {@code Mobile.useProjectileClipping()} returns {@code true} unless the combat method IS
+	 *   {@code MELEE_COMBAT} (`Mobile.java:293-295`) - false for this bot always, so the branch never
+	 *   applies to a melee attacker.</li>
+	 * </ul>
+	 * Called at flush-drain time (after this tick's movement AND combat fully resolve), matching the
+	 * POST-movement position {@code Combat.performNewAttack()} itself resolved against this same tick
+	 * (PROJECT_STATE.md section 8.2).
 	 */
 	private boolean isTargetInMeleeRange() {
 		if (target == null) {
@@ -604,12 +646,17 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		if (this.getLocation().equals(target.getLocation())) {
 			return false;
 		}
+		final boolean targetMoving = target.getMovementQueue().isMoving();
+		final boolean attackerMoving = this.getMovementQueue().isMoving();
+		int requiredDistance = 1;
+		if (targetMoving && attackerMoving) {
+			requiredDistance = 2;
+		}
 		final int distance = this.calculateDistance(target);
-		if (distance > 1) {
+		if (distance > requiredDistance) {
 			return false;
 		}
-		if (!this.getMovementQueue().isMoving() && !target.getMovementQueue().isMoving()
-				&& PathFinder.isDiagonalLocation(this, target)) {
+		if (!targetMoving && PathFinder.isDiagonalLocation(this, target)) {
 			return false;
 		}
 		return true;
