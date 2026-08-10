@@ -174,29 +174,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		// here rather than relying on the default.
 		setFightType(FightType.SCIMITAR_CHOP);
 
-		// NPC-AGGRESSION FIX (PROJECT_STATE.md section 13's NPC AGGRESSION pass) - source-audited
-		// root cause, not a data flag: Hobgoblin 3049's npc_defs.json already has
-		// "aggressive": true and "combatFollowDistance": 7 (both already OSRS-faithful, confirmed
-		// against the Wiki - no data fix needed here). The ACTUAL blocker is
-		// NpcAggression.runAggression()'s tolerance gate: `npcDefinition.buildsAggressionTolerance()
-		// && player.getAggressionTolerance().finished()` - and SecondsTimer.finished() returns TRUE
-		// for a never-started timer (its `seconds` field defaults to 0, so secondsRemaining() is
-		// immediately 0). The ONLY call site that ever starts this timer,
-		// RegionChangePacketListener.java:24, fires from a CLIENT-SENT region-change packet - which
-		// this headless bot, having no real client, never sends. Net effect: the tolerance timer
-		// sat permanently in its "already elapsed" default state, so the tolerance gate fired on
-		// EVERY tick from login onward, silently blocking aggression regardless of the (already
-		// correct) aggressive/combatFollowDistance data. Calling ONLY the one relevant line here
-		// (not the whole packet listener, which also does client-rendering-only work like
-		// deleteRegionalSpawns()/onRegionChange() hooks that don't apply to a bot with no client)
-		// mirrors exactly what a real client's first region load does - the real 10-minute
-		// (NpcAggression.NPC_TOLERANCE_SECONDS) tolerance window still applies faithfully afterward,
-		// it is simply now correctly INITIALIZED instead of defaulting to "already tolerant".
-		// Started ONCE here (onLogin(), not performReset()) - restarting it every episode would be
-		// the unfaithful choice (a real player teleporting back to the same tile doesn't get a
-		// fresh tolerance timer; the Wiki's own reset condition is leaving the tolerance region
-		// entirely, which this arena's fixed single tile never does).
-		this.getAggressionTolerance().start(NpcAggression.NPC_TOLERANCE_SECONDS);
+		// NPC-AGGRESSION FIX, root cause (PROJECT_STATE.md section 13's NPC AGGRESSION pass):
+		// Hobgoblin 3049's npc_defs.json already has "aggressive": true and
+		// "combatFollowDistance": 7 (both already OSRS-faithful) - the actual blocker was
+		// NpcAggression.runAggression()'s tolerance gate reading a never-started SecondsTimer as
+		// permanently "already elapsed." See performReset() for where the timer is now started -
+		// TOLERANCE-CLOCK FIX pass moved ownership there (single site, restarted every episode),
+		// reversing this method's original "start once at login" choice. Not started here anymore.
 	}
 
 	@Override
@@ -412,6 +396,28 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// full-restore value (100) as the existing admin-restore precedent (Player.java's
 			// setRunEnergy(100) call in its own full-restore path) - not a new/guessed constant.
 			this.setRunEnergy(100);
+
+			// TOLERANCE-CLOCK FIX (PROJECT_STATE.md section 13, follow-up to the NPC AGGRESSION
+			// pass): moved from onLogin() (start-once) to here (restart-every-episode), reversing
+			// that pass's own "restarting every episode would be unfaithful" call. That argument
+			// evaluated faithfulness in the WALL-CLOCK frame (NpcAggression.NPC_TOLERANCE_SECONDS
+			// is Guava-Stopwatch real-seconds, per SecondsTimer.java), but under TICK_RATE=1 the
+			// frame the agent actually experiences is TICKS, not wall-clock - and within any single
+			// ~500-tick episode, the real OSRS tolerance window (10 real minutes at stock 600ms
+			// ticks = 1000 ticks) never lapses regardless of machine speed. A start-once-at-login
+			// design instead let the timer's WALL-CLOCK 600s lapse mid-TRAINING-RUN (confirmed live:
+			// the elvarg_aggression run's tolerance lapsed at ~step 55,273, ~55% of the way through
+			// a 100k-step run, entirely a function of this machine's steps/sec) - nonstationary
+			// across episodes and machine-dependent, which is a worse-faithfulness failure than the
+			// one being avoided. Restarting here instead reproduces the faithful WITHIN-episode
+			// behavior (tolerance never lapses inside one episode's ~500 ticks) while making the
+			// environment stationary across episodes, exactly like every other piece of
+			// episode-scoped state this method already restores (HP, position, combat state,
+			// run energy above). Tick-counting the window instead (1000 ticks) was considered and
+			// rejected: at ~500 ticks/episode that is only ~2 aggressive episodes before permanent
+			// passivity for the rest of the run - faithful to a player loitering for 10 straight
+			// real minutes, not to what a training episode represents (a fresh encounter).
+			this.getAggressionTolerance().start(NpcAggression.NPC_TOLERANCE_SECONDS);
 
 			if (target.getHitpoints() <= 0 || target.isDying()) {
 				// Dead or mid-death-task: NPCDeathTask.stop() removes the old object from the
