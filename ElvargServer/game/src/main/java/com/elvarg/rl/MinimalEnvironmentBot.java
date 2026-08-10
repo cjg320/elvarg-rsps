@@ -14,6 +14,8 @@ import com.elvarg.game.event.events.PlayerPacketsFlushedEvent;
 import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
 import com.elvarg.game.model.Location;
 import com.elvarg.game.model.Skill;
+import com.elvarg.game.model.movement.path.PathFinder;
+import com.elvarg.util.timers.TimerKey;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -109,6 +111,16 @@ public class MinimalEnvironmentBot extends PlayerBot {
 
 	/** Only ever touched from the single game-tick thread (queued in the processed handler, drained in the flushed handler). */
 	private final Queue<Runnable> onFlushTasks = new LinkedList<>();
+
+	/**
+	 * H2-INSTRUMENT (PROJECT_STATE.md section 13's H2 - FIRST VALID TEST pass), monitoring-only,
+	 * same convention as bot_x/bot_y/run_energy - NOT part of the observation contract
+	 * (agent/observation.py's FIELD_ORDER). Snapshotted in onPacketsProcessed() at combat-decode
+	 * time (see that method's own comment for the exact tick-timing reasoning), read back in
+	 * buildObservationPayload() at flush-drain time the SAME tick.
+	 */
+	private volatile boolean lastStepAttackOffCooldown;
+	private volatile boolean lastStepChoseAttack;
 
 	/**
 	 * No-op interactions, ported from the naton1-reference's NoOpCombatInteraction /
@@ -239,6 +251,10 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// Runs entirely on the tick thread, same as the attack below - see performReset()'s
 			// own doc for the full reset design (PROJECT_STATE.md section 13).
 			resetErrorPayload = performReset();
+			// H2-INSTRUMENT: no combat decode happens on a reset tick - clear the snapshot fields so
+			// a reset-boundary observation never leaks the PRIOR episode's last-step values.
+			lastStepAttackOffCooldown = false;
+			lastStepChoseAttack = false;
 		} else if ("step".equals(action)) {
 			// MOVE HEAD (index 0) applied FIRST, before the combat decode below - this ordering IS
 			// the same-tick move+attack semantics decision (PROJECT_STATE.md section 13's move-head
@@ -252,7 +268,21 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			applyMoveAction(parseMoveActionIndex(step.message()));
 
 			if (target != null) {
+				// H2-INSTRUMENT (PROJECT_STATE.md section 13's H2 - FIRST VALID TEST pass): snapshot
+				// the attack-cooldown state HERE, before combat resolves later this same tick at
+				// Player.java:404. getTimers().process() (the per-tick decrement) already ran at the
+				// very TOP of Player.process(), before this PlayerPacketsProcessedEvent dispatch - so
+				// this read reflects "was a fresh attack rollable this tick," unconflated by a fresh
+				// COMBAT_ATTACK registration that would only happen LATER in this same tick if the
+				// combat head chooses attack and it resolves. Reading this same value at flush-drain
+				// time (after resolution) would incorrectly show "on cooldown" even for an attack that
+				// was off-cooldown at decision time, since a landed attack registers its own fresh
+				// cooldown before flush. Monitoring-only (see buildObservationPayload()) - not part of
+				// the observation contract (agent/observation.py's FIELD_ORDER), same convention as
+				// bot_x/bot_y/run_energy.
+				lastStepAttackOffCooldown = !this.getTimers().has(TimerKey.COMBAT_ATTACK);
 				final int combatActionIndex = parseCombatActionIndex(step.message());
+				lastStepChoseAttack = (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX);
 				if (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX) {
 					// DEFERRED RESOLUTION, not an immediate attack() call - this is the other half of
 					// the same-tick move+attack semantics decision (PROJECT_STATE.md section 13).
@@ -318,9 +348,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 							+ combatActionIndex + ")");
 				}
 			} else {
+				lastStepAttackOffCooldown = false;
+				lastStepChoseAttack = false;
 				logger.info("[MinimalEnv] step received, no attack applied (no target)");
 			}
 		} else {
+			lastStepAttackOffCooldown = false;
+			lastStepChoseAttack = false;
 			logger.info("[MinimalEnv] action received (valid=false), nothing applied");
 		}
 
@@ -541,7 +575,44 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				+ ",\"bot_x\":" + this.getLocation().getX()
 				+ ",\"bot_y\":" + this.getLocation().getY()
 				+ ",\"run_energy\":" + this.getRunEnergy()
+				+ ",\"attack_off_cooldown\":" + lastStepAttackOffCooldown
+				+ ",\"attack_chosen\":" + lastStepChoseAttack
+				+ ",\"target_in_melee_range\":" + isTargetInMeleeRange()
 				+ "}";
+	}
+
+	/**
+	 * H2-INSTRUMENT (PROJECT_STATE.md section 13's H2 - FIRST VALID TEST pass), monitoring-only.
+	 * Read-only replica of the CORE geometry criterion {@code CombatFactory.canReach()} uses for
+	 * melee (same-tile exclusion, requiredDistance=1 for a non-halberd weapon per
+	 * {@code MeleeCombatMethod.attackDistance()}, diagonal exclusion for two size-1 entities per
+	 * {@code PathFinder.isDiagonalLocation()}) - deliberately NOT calling {@code canReach()} itself,
+	 * which has real mutating side effects on this exact matchup (it can call
+	 * {@code npc.getCombat().reset()} and flip the NPC's retreat-coordinator state - PROJECT_STATE.md
+	 * section 13's NPC PURSUIT FIDELITY pass traced these branches; an observation-only read must
+	 * never trigger them). Known, accepted simplification: omits {@code canReach()}'s "both
+	 * attacker and target moved this tick -> requiredDistance+1" adjustment - a minor edge case for
+	 * the stationary-combat window this instrument targets, not the walkRadius-scale gap that pass
+	 * corrected. Called at flush-drain time (after this tick's movement AND combat fully resolve),
+	 * matching the POST-movement position {@code Combat.performNewAttack()} itself resolved against
+	 * this same tick (PROJECT_STATE.md section 8.2).
+	 */
+	private boolean isTargetInMeleeRange() {
+		if (target == null) {
+			return false;
+		}
+		if (this.getLocation().equals(target.getLocation())) {
+			return false;
+		}
+		final int distance = this.calculateDistance(target);
+		if (distance > 1) {
+			return false;
+		}
+		if (!this.getMovementQueue().isMoving() && !target.getMovementQueue().isMoving()
+				&& PathFinder.isDiagonalLocation(this, target)) {
+			return false;
+		}
+		return true;
 	}
 
 	/** Matches agent/observation.py's _clip01(x) exactly: max(0.0, min(1.0, x)). */
