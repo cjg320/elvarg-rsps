@@ -5,6 +5,7 @@ import com.elvarg.game.collision.RegionManager;
 import com.elvarg.game.content.combat.FightType;
 import com.elvarg.game.definition.PlayerBotDefinition;
 import com.elvarg.game.entity.impl.npc.NPC;
+import com.elvarg.game.entity.impl.npc.NpcAggression;
 import com.elvarg.game.entity.impl.playerbot.PlayerBot;
 import com.elvarg.game.entity.impl.playerbot.interaction.CombatInteraction;
 import com.elvarg.game.entity.impl.playerbot.interaction.MovementInteraction;
@@ -172,6 +173,30 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		// stance (matching the Python sim's "+3 attack/+0 strength"), so force it explicitly
 		// here rather than relying on the default.
 		setFightType(FightType.SCIMITAR_CHOP);
+
+		// NPC-AGGRESSION FIX (PROJECT_STATE.md section 13's NPC AGGRESSION pass) - source-audited
+		// root cause, not a data flag: Hobgoblin 3049's npc_defs.json already has
+		// "aggressive": true and "combatFollowDistance": 7 (both already OSRS-faithful, confirmed
+		// against the Wiki - no data fix needed here). The ACTUAL blocker is
+		// NpcAggression.runAggression()'s tolerance gate: `npcDefinition.buildsAggressionTolerance()
+		// && player.getAggressionTolerance().finished()` - and SecondsTimer.finished() returns TRUE
+		// for a never-started timer (its `seconds` field defaults to 0, so secondsRemaining() is
+		// immediately 0). The ONLY call site that ever starts this timer,
+		// RegionChangePacketListener.java:24, fires from a CLIENT-SENT region-change packet - which
+		// this headless bot, having no real client, never sends. Net effect: the tolerance timer
+		// sat permanently in its "already elapsed" default state, so the tolerance gate fired on
+		// EVERY tick from login onward, silently blocking aggression regardless of the (already
+		// correct) aggressive/combatFollowDistance data. Calling ONLY the one relevant line here
+		// (not the whole packet listener, which also does client-rendering-only work like
+		// deleteRegionalSpawns()/onRegionChange() hooks that don't apply to a bot with no client)
+		// mirrors exactly what a real client's first region load does - the real 10-minute
+		// (NpcAggression.NPC_TOLERANCE_SECONDS) tolerance window still applies faithfully afterward,
+		// it is simply now correctly INITIALIZED instead of defaulting to "already tolerant".
+		// Started ONCE here (onLogin(), not performReset()) - restarting it every episode would be
+		// the unfaithful choice (a real player teleporting back to the same tile doesn't get a
+		// fresh tolerance timer; the Wiki's own reset condition is leaving the tolerance region
+		// entirely, which this arena's fixed single tile never does).
+		this.getAggressionTolerance().start(NpcAggression.NPC_TOLERANCE_SECONDS);
 	}
 
 	@Override
