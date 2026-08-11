@@ -19,6 +19,15 @@ public class NPCRespawnTask extends Task {
     public NPCRespawnTask(NPC npc, int ticks) {
         super(ticks);
         this.npc = npc;
+        // NPC-RESPAWN BUG FIX SCOPE NOTE (com.elvarg.rl, PROJECT_STATE.md section 13): re-binds this
+        // task's key from Task's shared DEFAULT_KEY to the specific NPC instance being respawned.
+        // Every other respawn in the game still fires on exactly the same schedule as before -- this
+        // ONLY makes each respawn INDIVIDUALLY cancellable via TaskManager.cancelTasks(npc), which
+        // nothing currently does or needs; it was previously impossible to cancel a single respawn
+        // without also cancelling every other DEFAULT_KEY task in the game. Global respawn behavior
+        // is otherwise unchanged -- this is the one stock-file touch this fix needs, matching the
+        // HitQueue.clear() precedent (added, not used anywhere else in stock engine logic).
+        this.bind(npc);
     }
 
     @Override

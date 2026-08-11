@@ -3,6 +3,8 @@ package com.elvarg.rl;
 import com.elvarg.game.World;
 import com.elvarg.game.collision.RegionManager;
 import com.elvarg.game.content.combat.FightType;
+import com.elvarg.game.content.combat.WeaponInterfaces;
+import com.elvarg.game.content.combat.formula.DamageFormulas;
 import com.elvarg.game.definition.PlayerBotDefinition;
 import com.elvarg.game.entity.impl.npc.NPC;
 import com.elvarg.game.entity.impl.npc.NpcAggression;
@@ -12,9 +14,14 @@ import com.elvarg.game.entity.impl.playerbot.interaction.MovementInteraction;
 import com.elvarg.game.event.EventDispatcher;
 import com.elvarg.game.event.events.PlayerPacketsFlushedEvent;
 import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
+import com.elvarg.game.model.Item;
 import com.elvarg.game.model.Location;
 import com.elvarg.game.model.Skill;
+import com.elvarg.game.model.container.impl.Equipment;
+import com.elvarg.game.model.equipment.BonusManager;
 import com.elvarg.game.model.movement.path.PathFinder;
+import com.elvarg.game.task.TaskManager;
+import com.elvarg.util.ItemIdentifiers;
 import com.elvarg.util.timers.TimerKey;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -207,6 +214,18 @@ public class MinimalEnvironmentBot extends PlayerBot {
 
 	public static MinimalEnvironmentBot getInstance() {
 		return instance;
+	}
+
+	/**
+	 * STEP 2 (tick-level cross-validation, PROJECT_STATE.md section 13's BONUS-STATE AUDIT
+	 * follow-up): the shared join key other packages (the combat-roll diagnostic prints) use to tag
+	 * a roll with "which flush/observation row it belongs to," so the Python side can align a
+	 * diagnostic log line to an exact CSV row WITHOUT relying on a separate, independently
+	 * incrementing counter -- the v2 flushCounter/CSV-timestep 2.02x mismatch (SOURCE-READ +
+	 * EXISTING-DATA FORENSICS pass, Part 3d) is a known trap this getter exists to avoid recreating.
+	 */
+	public long getFlushCounter() {
+		return flushCounter;
 	}
 
 	public void setTarget(NPC target) {
@@ -422,6 +441,44 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			this.getMovementQueue().reset();
 			this.moveTo(ARENA_BOT_LOCATION);
 			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
+
+			// EQUIPMENT-LOSS FIX (Step 2's named design consequence): re-assert the authored melee
+			// loadout every episode, unconditionally -- not just after a death. Root cause (Step 2,
+			// PROJECT_STATE.md section 13): PlayerDeathTask wipes equipment on death (this arena
+			// tile has no Area, so loseItems defaults true and never gets set false) and its own
+			// resetAttributes() call re-caches BonusManager off the now-empty equipment and
+			// re-resolves WeaponInterfaces to UNARMED -- and this method never undid either, so a
+			// bot that died once fought the rest of the run unarmed (attRoll 2560/maxHit 4 instead
+			// of 3655/5), silently, with no signal anywhere in the existing observation contract.
+			// SURGICAL re-assert chosen over a full Presetables.load() replay: load() dumps
+			// non-spawnable current items to the bank before re-adding them from the preset
+			// (Presetables.java's own valuable-item handling), which would needlessly cycle the
+			// scimitar through the bank every single episode and risks a hard failure ("you don't
+			// have X in inventory/equipment/bank") if a later load ever finds fewer copies than the
+			// preset expects -- entirely avoidable by not going through that path at all. This block
+			// covers EXACTLY what resetAttributes() perturbs on death that this method didn't already
+			// cover elsewhere: equipment (blank per the wipe -> re-set here), the weapon interface and
+			// bonus cache (re-derived from equipment via WeaponInterfaces.assign()/BonusManager.update()
+			// -- both must run in that order, matching resetAttributes()'s own call order), and fight
+			// type (onLogin()'s one-time SCIMITAR_CHOP force only ever ran once, at initial login).
+			// Everything else resetAttributes() touches on death (special%, vengeance, poison/fire/
+			// teleblock immunity, freeze, prayer-block, wilderness level, recoil, skull, skill levels
+			// reset to max, run energy, movement-block cleared) is either already explicitly restored
+			// elsewhere in this method (HP just above, run energy below) or structurally inert for
+			// this non-wilderness, no-poison, no-prayer, no-special, non-PK arena -- checked against
+			// resetAttributes()'s full body, not assumed. Ground items dropped at death
+			// (ItemOnGroundManager, PlayerDeathTask) are NOT a fix target: this bot is never the
+			// killer-of-record for its own equipment loss (Combat.addDamage() only credits PLAYER
+			// attackers, never NPCs, so getKiller() is always empty and the dropped scimitar
+			// registers to the bot itself) and ItemOnGroundManager's own state-update cycle
+			// (STATE_UPDATE_DELAY=50 ticks per state, a few states to full removal) auto-expires each
+			// drop well within one 500-tick episode -- confirmed from source, not assumed;
+			// no accumulation across a long run, no fix needed.
+			this.getEquipment().setItem(Equipment.WEAPON_SLOT, new Item(ItemIdentifiers.MITHRIL_SCIMITAR));
+			WeaponInterfaces.assign(this);
+			BonusManager.update(this);
+			setFightType(FightType.SCIMITAR_CHOP);
+
 			// PROJECT_STATE.md section 13's flagged non-stationarity fix: run energy was previously
 			// left untouched by reset (only HP/position/combat state were restored), so it drained
 			// monotonically across an episode's running use and never recovered at episode boundaries
@@ -453,22 +510,124 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// real minutes, not to what a training episode represents (a fresh encounter).
 			this.getAggressionTolerance().start(NpcAggression.NPC_TOLERANCE_SECONDS);
 
-			if (target.getHitpoints() <= 0 || target.isDying()) {
-				// Dead or mid-death-task: NPCDeathTask.stop() removes the old object from the
-				// world regardless of any HP we set on it (World.getRemoveNPCQueue()), so don't
-				// try to revive it - spawn fresh, the same two-call pattern Server.java used at
-				// boot, and REPOINT target. Dropping this repoint reproduces the exact
-				// stale-dead-reference bug this branch exists to avoid.
-				final NPC freshNpc = NPC.create(target.getId(), ARENA_NPC_LOCATION);
-				World.getAddNPCQueue().add(freshNpc);
-				this.target = freshNpc;
-				logger.info("[MinimalEnv] reset: NPC was dead/dying, spawned fresh instance and repointed target");
+			// NPC-RESPAWN BUG FIX (ENGAGEMENT-LEVER SELECTION pass root cause, PROJECT_STATE.md
+			// section 13): the bot's OWN "who is attacking me" reference is never cleared by
+			// anything above (Combat.reset() only touches target/combatFollowing/mobileInteraction,
+			// never attacker -- confirmed from source, same finding as the BONUS-STATE AUDIT pass's
+			// read of the same method). A stale reference here is exactly what let a ghost NPC (see
+			// below) block every subsequent attack via CombatFactory.canAttack()'s ALREADY_UNDER_ATTACK
+			// case (attacker.getCombat().getAttacker() != target) -- cleared unconditionally, every
+			// reset, regardless of branch, so this can never happen again even if a ghost somehow
+			// still slips past the prevention below.
+			this.getCombat().setUnderAttack(null);
+
+			// NPC-CHURN ROOT FIX (PROJECT_STATE.md section 13): HOLDS ONE TARGET INSTANCE across the
+			// ENTIRE run instead of create/destroy-cycling a new NPC object every time it dies -- the
+			// predecessor NPC-RESPAWN and NPC-INSTANCE-LOSS fixes both treated symptoms of this same
+			// churn (a ghost coexisting with our own fresh object; our own fresh object later vanishing
+			// to a queued removal colliding with a reused world-slot index) without removing the churn
+			// itself. Source-confirmed this pass, not assumed: `NPCDeathTask.stop()` only DEREGISTERS
+			// the dying NPC (`World.getRemoveNPCQueue()` -> `MobileList.remove()`, which flips
+			// `registered=false` and frees its slot) -- it never destroys the Java object.
+			// `NPC.onAdd()`/`onRemove()` are BOTH true no-ops (verified from source, not assumed), and
+			// `MobileList.add(e)` only requires `!e.isRegistered()` to succeed -- so the SAME object can
+			// be re-registered after being deregistered, with a freshly assigned slot, indistinguishable
+			// from a brand-new one. Reusing `target` this way means our OWN code never creates a second
+			// object competing for a world slot again -- the precondition the index-collision hazard
+			// needed (repeated create/destroy churn from OUR OWN reset logic) is gone, not just
+			// contained.
+			//
+			// The NPC's own death sequence (NPCDeathTask, 2 of its own ticks: blocks movement/plays the
+			// death animation, THEN deregisters + conditionally schedules a stock respawn) can still be
+			// mid-flight when this reset() call arrives -- unlike the old create-a-new-object design,
+			// which simply abandoned the dying object and never needed to care, REUSING it means we
+			// must not touch HP/position/registration while its own death task might still be about to
+			// deregister it out from under us (or resurrect a spurious stock respawn for an NPC we
+			// already revived). Same retryable-error contract already used for the BOT's own isDying()
+			// check above, and served by the SAME existing client-side retry loop
+			// (ElvargSocketEnv.reset(), MAX_RESET_RETRY_CYCLES) with no Python-side change needed.
+			// Deliberately checks ONLY isDying(), not HP<=0: isDying() is false both when the NPC never
+			// died AND once its death sequence has genuinely finished (NPCDeathTask.stop() clears it) --
+			// HP<=0 alone would never resolve (nothing else in this method reset HP yet), which is
+			// exactly the infinite-retry bug an earlier draft of this fix caught before landing it.
+			if (target.isDying()) {
+				logger.warning("[MinimalEnv] reset requested while NPC is dying - transient, retryable");
+				return "{\"error\":\"npc is currently dying, retry reset\",\"retryable\":true}";
+			}
+
+			// Cancel any pending stock respawn for THIS EXACT object. Retried against the SAME
+			// persistent reference on every reset for the rest of the run (unlike the old design, where
+			// each episode's `target` was a brand-new object a missed cancellation could never be
+			// retried against) -- a "too early" miss (NPCDeathTask.stop() hasn't submitted the respawn
+			// task yet) self-heals on THIS SAME object's next death, not never.
+			TaskManager.cancelTasks(target);
+			target.getCombat().reset();
+			target.getCombat().getHitQueue().clear();
+			target.getCombat().setUnderAttack(null);
+			target.moveTo(ARENA_NPC_LOCATION);
+			target.setHitpoints(target.getCurrentDefinition().getHitpoints());
+			// TRUE when this call just enqueued a re-registration -- World.process()'s NPC add/remove
+			// queue draining runs EARLY in that method (before player processing, where this code runs),
+			// so an add() queued HERE cannot possibly have drained by the time ANY check later in this
+			// SAME call reads World.getNpcs() again -- confirmed the hard way, not assumed: an earlier
+			// draft of this fix ran the instance-loss backstop's presence scan unconditionally right
+			// after this block, which therefore ALWAYS read `target` as "missing" on every single
+			// re-registration (it hadn't drained yet, not because it was ever actually lost) and fell
+			// back to creating a brand-new replacement object EVERY reset -- silently reintroducing the
+			// exact create/destroy churn this whole fix exists to eliminate. Caught via the Part 2
+			// verification run itself (persistent npc_instance_count=2 for a fight's entire duration,
+			// not the brief single-tick blip a genuine race would produce), not assumed correct from
+			// the code reading right the first time.
+			boolean justReregistered = !target.isRegistered();
+			if (justReregistered) {
+				// Died since the last reset and its death sequence has fully resolved (isDying() check
+				// above already passed) -- re-register the SAME instance, never a new one.
+				World.getAddNPCQueue().add(target);
+				logger.info("[MinimalEnv] reset: NPC had died, re-registered the SAME instance (no new object created)");
 			} else {
-				target.getCombat().reset();
-				target.getCombat().getHitQueue().clear();
-				target.moveTo(ARENA_NPC_LOCATION);
-				target.setHitpoints(target.getCurrentDefinition().getHitpoints());
 				logger.info("[MinimalEnv] reset: NPC healed and repositioned in place");
+			}
+
+			// GHOST-NPC SWEEP (backstop, kept): the ONLY way a stray same-id NPC can still appear is an
+			// uncancelled STOCK respawn (a cancellation miss on the timing race described above) --
+			// never our own churn anymore, since we no longer create competing instances. Cheap to keep,
+			// catches that one remaining case.
+			for (NPC other : World.getNpcs()) {
+				if (other != null && other != target && other.getId() == target.getId()) {
+					World.getRemoveNPCQueue().add(other);
+					logger.warning("[MinimalEnv] reset: removed a stray/ghost NPC id=" + other.getId()
+							+ " (uncancelled stock respawn -- see PROJECT_STATE.md section 13)");
+				}
+			}
+
+			// NPC-INSTANCE-LOSS backstop (kept explicitly as a cheap, rare-case fallback, NOT the
+			// primary mechanism anymore -- the root fix above is expected to make this fire ~never,
+			// verified this pass). Skipped entirely when `justReregistered` -- a same-call add() cannot
+			// have drained yet (see that block's own comment), so checking here would always be a false
+			// positive, not a genuine check. Only meaningful when `target` was ALREADY registered coming
+			// into this reset (nothing queued this call), in which case "should already be present but
+			// isn't" is a genuine anomaly worth recovering from: `target.isRegistered()` itself cannot
+			// be trusted for that check (MobileList.remove(e) sets `e`'s OWN registered flag false, not
+			// the flag of whatever object it actually nulled out of the slot array, so a wrongly-evicted
+			// `target` can still read isRegistered()==true) -- a REFERENCE scan is the only reliable one.
+			// If genuinely absent, the object's bookkeeping is in an inconsistent state a simple re-add
+			// can't cleanly resolve -- fall back to a fresh replacement, same as this fix's predecessor.
+			if (!justReregistered) {
+				boolean targetPresent = false;
+				for (NPC n : World.getNpcs()) {
+					if (n == this.target) {
+						targetPresent = true;
+						break;
+					}
+				}
+				if (!targetPresent) {
+					logger.warning("[MinimalEnv] reset: target missing from World.getNpcs() despite the churn-root "
+							+ "fix (NPC-INSTANCE-LOSS backstop firing -- see PROJECT_STATE.md section 13) -- recovering");
+					TaskManager.cancelTasks(this.target);
+					final NPC recovered = NPC.create(this.target.getId(), ARENA_NPC_LOCATION);
+					World.getAddNPCQueue().add(recovered);
+					this.target = recovered;
+				}
 			}
 
 			return null;
@@ -578,7 +737,34 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				+ ",\"attack_off_cooldown\":" + lastStepAttackOffCooldown
 				+ ",\"attack_chosen\":" + lastStepChoseAttack
 				+ ",\"target_in_melee_range\":" + isTargetInMeleeRange()
+				+ ",\"distance\":" + this.getLocation().getDistance(target.getLocation())
+				+ ",\"diag_join_key\":" + this.flushCounter
+				// PERMANENT TRIPWIRE (EQUIPMENT-LOSS FIX pass, PROJECT_STATE.md section 13): the
+				// live max melee hit, read the same way the real accuracy/damage rolls do
+				// (DamageFormulas.calculateMaxMeleeHit(), not a cached/assumed constant). Step 2
+				// found this exact value silently drop from 5 to 4 for the remainder of any run
+				// after the bot's first death, invisible in every prior observation field -- this
+				// makes any future equipment/bonus/stance perturbation visible in every per-step
+				// log going forward, monitoring-only like bot_x/run_energy/distance/diag_join_key.
+				+ ",\"max_melee_hit\":" + DamageFormulas.calculateMaxMeleeHit(this)
+				// PERMANENT TRIPWIRE (NPC-RESPAWN BUG FIX pass, PROJECT_STATE.md section 13): live
+				// count of World NPCs sharing target's id. Always expected to read 1 -- a ghost
+				// slipping past performReset()'s cancel-and-sweep prevention (a residual timing race,
+				// see that method's own comment) would show as 2+ here, visible in every per-step log
+				// going forward, same monitoring-only convention as max_melee_hit.
+				+ ",\"npc_instance_count\":" + countNpcInstances(target.getId())
 				+ "}";
+	}
+
+	/** Counts live World NPCs sharing the given id -- see the npc_instance_count tripwire's own doc. */
+	private static int countNpcInstances(int npcId) {
+		int count = 0;
+		for (NPC other : World.getNpcs()) {
+			if (other != null && other.getId() == npcId) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	/**
