@@ -21,10 +21,20 @@ import com.elvarg.util.Stopwatch;
 import com.elvarg.util.timers.TimerKey;
 
 public class Combat {
+    // MECHANICS AUDIT / FIDELITY FIX PASS (PROJECT_STATE.md section 13): the unreciprocated-combat
+    // attack-skip was wall-clock (Stopwatch.elapsed(6000)), effectively disabled under TICK_RATE=1
+    // training (~6000 ticks to fire) while firing every ~10 ticks at stock speed -- a training-vs-
+    // watched divergence the cover-cycling arena thread would actually exercise. Converted to a tick
+    // count, independent of lastAttack (Stopwatch): lastAttack is ALSO read by NPC.java's 20-second
+    // health-regen gate, an unrelated subsystem with its own audit history -- this field exists so
+    // that conversion never touches lastAttack at all, not even its type.
+    private static final int UNRECIPROCATED_ATTACK_SKIP_TICKS = 10;
+
     private final Mobile character;
     private final HitQueue hitQueue;
     private final Map<Player, HitDamageCache> damageMap = new HashMap<>();
     private final Stopwatch lastAttack = new Stopwatch();
+    private int ticksSinceLastAttack = 0;
     private final SecondsTimer poisonImmunityTimer = new SecondsTimer();
     private final SecondsTimer fireImmunityTimer = new SecondsTimer();
     private final SecondsTimer teleblockTimer = new SecondsTimer();
@@ -71,8 +81,16 @@ public class Combat {
         // Process the hit queue
         hitQueue.process(character);
 
-        // Reset attacker if we haven't been attacked in 6 seconds.
-        if (lastAttack.elapsed(6000)) {
+        // Tick-counted (not wall-clock -- see UNRECIPROCATED_ATTACK_SKIP_TICKS above). process() is
+        // called exactly once per tick per entity (NPC.java/Player.java each call getCombat().process()
+        // once from their own once-per-tick process() barrier, alongside getTimers().process() and
+        // getMovementQueue().process()), so this increment is a genuine per-tick counter, not an
+        // approximation. Skip this tick's attack attempt if we haven't been attacked in
+        // UNRECIPROCATED_ATTACK_SKIP_TICKS ticks; setUnderAttack(null) resets the counter, so this
+        // fires once, then restarts counting toward the next skip -- a periodic one-tick attack-skip,
+        // not a disengage (target/combatFollowing are untouched by this path).
+        ticksSinceLastAttack++;
+        if (ticksSinceLastAttack >= UNRECIPROCATED_ATTACK_SKIP_TICKS) {
             setUnderAttack(null);
             return;
         }
@@ -353,6 +371,7 @@ public class Combat {
     public void setUnderAttack(Mobile attacker) {
         this.attacker = attacker;
         this.lastAttack.reset();
+        this.ticksSinceLastAttack = 0;
     }
 
     public CombatSpell getCastSpell() {

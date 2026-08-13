@@ -331,6 +331,30 @@ public class CombatFactory {
 			return false;
 		}
 
+		// MELEE WALL-CLIPPING FIDELITY FIX (PROJECT_STATE.md section 13): a wall directly between
+		// adjacent tiles blocks a real-OSRS melee attack (Wiki-corroborated -- see the audit), but
+		// useProjectileClipping() is false for melee (Mobile.java), so the projectile check above never
+		// runs for it. Scoped to distance==1 (standard weapons) deliberately -- halberds (range 2) are a
+		// real, documented exception that must not be caught here once a future weapon increment adds
+		// one. Diagonal adjacency for size-1 pairs is already excluded above (stepOut), so only the 4
+		// orthogonal cases need covering.
+		if (method.type() == CombatType.MELEE && distance == 1) {
+			int dx = targetPosition.getX() - attackerPosition.getX();
+			int dy = targetPosition.getY() - attackerPosition.getY();
+			if (dx == 0 && dy == 1 && RegionManager.blockedNorth(attackerPosition, attacker.getPrivateArea())) {
+				return false;
+			}
+			if (dx == 0 && dy == -1 && RegionManager.blockedSouth(attackerPosition, attacker.getPrivateArea())) {
+				return false;
+			}
+			if (dx == 1 && dy == 0 && RegionManager.blockedEast(attackerPosition, attacker.getPrivateArea())) {
+				return false;
+			}
+			if (dx == -1 && dy == 0 && RegionManager.blockedWest(attackerPosition, attacker.getPrivateArea())) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
