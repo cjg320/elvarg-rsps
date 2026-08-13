@@ -2,6 +2,7 @@ package com.elvarg.rl;
 
 import com.elvarg.game.World;
 import com.elvarg.game.collision.RegionManager;
+import com.elvarg.game.content.combat.CombatFactory;
 import com.elvarg.game.content.combat.FightType;
 import com.elvarg.game.content.combat.WeaponInterfaces;
 import com.elvarg.game.content.combat.formula.DamageFormulas;
@@ -19,7 +20,6 @@ import com.elvarg.game.model.Location;
 import com.elvarg.game.model.Skill;
 import com.elvarg.game.model.container.impl.Equipment;
 import com.elvarg.game.model.equipment.BonusManager;
-import com.elvarg.game.model.movement.path.PathFinder;
 import com.elvarg.game.task.TaskManager;
 import com.elvarg.util.ItemIdentifiers;
 import com.elvarg.util.timers.TimerKey;
@@ -102,6 +102,22 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 */
 	private static final double MAX_MODELED_MAX_HIT = 60.0;
 	private static final double MAX_ATTACK_SPEED_TICKS = 10.0;
+
+	/**
+	 * GEOMETRY-FIELD WIRING PASS: matches agent/observation.py's MAX_OBSERVABLE_DISTANCE (20)
+	 * exactly, same hardcoded-pair convention as the ceilings above -- no cross-language shared
+	 * constant mechanism exists, so a change to the Python constant would silently desynchronize
+	 * this one.
+	 */
+	private static final double MAX_OBSERVABLE_DISTANCE = 20.0;
+
+	/**
+	 * GEOMETRY-FIELD WIRING PASS: the queued protocol_version deferred-queue item, taken with this
+	 * pass. Starts at 2 -- 1 is reserved to mean "the implicit pre-versioning format" every payload
+	 * before this pass used (no version field existed at all). Bump this and the Python side's
+	 * expected-version check together, deliberately, whenever the wire format changes.
+	 */
+	private static final int PROTOCOL_VERSION = 2;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -661,9 +677,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * enemy_max_hit_normalized and enemy_attack_speed are {@code clip01(value / ceiling)} reads
 	 * of the NPC definition's maxHit/attackSpeed against the same ceilings as
 	 * MAX_MODELED_MAX_HIT/MAX_ATTACK_SPEED_TICKS above. Geometry fields (enemy_distance,
-	 * enemy_in_my_attack_range, enemy_can_reach_me, dx/dy signs) and enemy_attack_imminent_* are
-	 * deliberately NOT wired here - still zero-filled Python-side, per the section 13 scoping for
-	 * this experiment.
+	 * enemy_dx_sign, enemy_dy_sign, enemy_in_my_attack_range, enemy_can_reach_me) are WIRED as of
+	 * the GEOMETRY-FIELD WIRING PASS (PROJECT_STATE.md section 13) -- see that pass's extracted
+	 * spec (agent/observation.py's encode_observation()) and CombatFactory.isMeleeReachable() for
+	 * the shared reach predicate both reach fields and target_in_melee_range now use. Python-side
+	 * wiring is opt-in via ElvargSocketEnv's wire_geometry constructor flag (default False,
+	 * preserving model_final's trained zero-filled distribution byte-for-byte). enemy_attack_imminent_*
+	 * remains deliberately NOT wired -- out of scope for this pass, still zero-filled Python-side.
 	 * <p>
 	 * MONITORING-ONLY TELEMETRY (PROJECT_STATE.md section 13's retrain-shakedown pass): also emits
 	 * {@code bot_x}/{@code bot_y} (absolute position) and {@code run_energy} (0-100). These are
@@ -726,18 +746,63 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		final double enemyAttackSpeed = clip01(
 				target.getCurrentDefinition().getAttackSpeed() / MAX_ATTACK_SPEED_TICKS);
 
+		// GEOMETRY-FIELD WIRING PASS (PROJECT_STATE.md section 13). Spec extracted from
+		// agent/observation.py's encode_observation(), not from memory:
+		//   enemy_distance      = clip01(chebyshev_distance(bot, npc) / MAX_OBSERVABLE_DISTANCE=20)
+		//   enemy_dx_sign       = sign(npc.x - bot.x)   -- NPC MINUS BOT, not the other way around
+		//   enemy_dy_sign       = sign(npc.y - bot.y)
+		//   enemy_in_my_attack_range = is_in_melee_range(bot, npc)   -- bot is the attacker
+		//   enemy_can_reach_me       = npc.in_attack_range(bot)      -- npc is the attacker
+		// The sim's own is_in_melee_range() is a pure orthogonal-adjacency predicate with no wall
+		// concept, so in sim these two reach fields are always equal to each other. On Elvarg they
+		// are NOT assumed equal -- each is computed independently via CombatFactory.isMeleeReachable()
+		// with the attacker/target arguments swapped, since the wall check and the both-moving
+		// distance-2 rule are per-attacker-tile, directional facts, not guaranteed symmetric (see
+		// the live audit in this same pass for whether they empirically ever diverge here).
+		final int distance = this.getLocation().getDistance(target.getLocation());
+		final double enemyDistance = clip01(distance / MAX_OBSERVABLE_DISTANCE);
+		final int enemyDx = target.getLocation().getX() - this.getLocation().getX();
+		final int enemyDy = target.getLocation().getY() - this.getLocation().getY();
+		final int enemyDxSign = Integer.signum(enemyDx);
+		final int enemyDySign = Integer.signum(enemyDy);
+		final boolean enemyInMyAttackRange = CombatFactory.isMeleeReachable(this, target);
+		final boolean enemyCanReachMe = CombatFactory.isMeleeReachable(target, this);
+
 		return "{\"hp_fraction\":" + hpFraction
 				+ ",\"enemy_hp_fraction\":" + enemyHpFraction
 				+ ",\"enemy_attack_style_melee\":" + enemyAttackStyleMelee
 				+ ",\"enemy_max_hit_normalized\":" + enemyMaxHitNormalized
 				+ ",\"enemy_attack_speed\":" + enemyAttackSpeed
+				+ ",\"enemy_distance\":" + enemyDistance
+				+ ",\"enemy_dx_sign\":" + enemyDxSign
+				+ ",\"enemy_dy_sign\":" + enemyDySign
+				+ ",\"enemy_in_my_attack_range\":" + enemyInMyAttackRange
+				+ ",\"enemy_can_reach_me\":" + enemyCanReachMe
 				+ ",\"bot_x\":" + this.getLocation().getX()
 				+ ",\"bot_y\":" + this.getLocation().getY()
+				// TRAINER TELEMETRY (GEOMETRY-FIELD WIRING PASS): closes the MECHANICS AUDIT's live-
+				// probe gap (no way to independently confirm the NPC's own position, or engineer/
+				// verify wall-adjacent geometry, without this). Same provenance convention as bot_x/
+				// bot_y -- payload-only, trainer-privileged, deliberately NOT in FIELD_ORDER, never
+				// whitelisted into the observation.
+				+ ",\"npc_x\":" + target.getLocation().getX()
+				+ ",\"npc_y\":" + target.getLocation().getY()
 				+ ",\"run_energy\":" + this.getRunEnergy()
 				+ ",\"attack_off_cooldown\":" + lastStepAttackOffCooldown
 				+ ",\"attack_chosen\":" + lastStepChoseAttack
-				+ ",\"target_in_melee_range\":" + isTargetInMeleeRange()
-				+ ",\"distance\":" + this.getLocation().getDistance(target.getLocation())
+				// GEOMETRY-FIELD WIRING PASS: was isTargetInMeleeRange(), a hand-maintained replica of
+				// canReach()'s geometry that had already drifted once (missed the wall-clipping fix).
+				// Now the same CombatFactory.isMeleeReachable() call enemy_in_my_attack_range above
+				// uses -- one source of truth, this field and that one can never diverge again.
+				+ ",\"target_in_melee_range\":" + enemyInMyAttackRange
+				+ ",\"distance\":" + distance
+				// PROTOCOL_VERSION (GEOMETRY-FIELD WIRING PASS -- the queued deferred-queue item,
+				// taken with this pass per its own instruction, since this is the first wire-touching
+				// pass since it was queued). Starts at 2, not 1 -- 1 is reserved to mean "the implicit
+				// pre-versioning format" every payload before this pass used (no version field at all).
+				// The Python side checks this on reset and raises loudly on a mismatch, so a future
+				// wire-format fork fails loud instead of silently misparsing.
+				+ ",\"protocol_version\":" + PROTOCOL_VERSION
 				+ ",\"diag_join_key\":" + this.flushCounter
 				// PERMANENT TRIPWIRE (EQUIPMENT-LOSS FIX pass, PROJECT_STATE.md section 13): the
 				// live max melee hit, read the same way the real accuracy/damage rolls do
@@ -765,87 +830,6 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			}
 		}
 		return count;
-	}
-
-	/**
-	 * H2-INSTRUMENT (PROJECT_STATE.md section 13's INSTRUMENT FIX + REMEASURE pass), monitoring-only.
-	 * Read-only replica of {@code CombatFactory.canReach()}, corrected against a FULL enumeration of
-	 * that method's branches (done as this pass's own Part 0, before touching this method - see
-	 * PROJECT_STATE.md for the full branch-by-branch record). Every branch, matched or omitted with
-	 * its omission argued from source, not assumed:
-	 * <ul>
-	 *   <li>{@code validTarget()} gate (null/registered/HP&lt;=0/untargetable/distance&gt;=40/NPC
-	 *   ownership) - OMITTED, argued irrelevant: HP&lt;=0 means the fight already ended (no
-	 *   meaningful "opportunity" concept applies to an already-dead target, and the HP-delta hit/miss
-	 *   reconstruction cannot register a hit against 0 HP regardless); distance&gt;=40 never occurs in
-	 *   this arena; ownership is unset for our programmatically-{@code NPC.create()}'d arena NPC. Also
-	 *   note {@code canReach()} itself returns {@code true} (not false) when this gate fails - an
-	 *   attack attempt against an invalid target isn't blocked HERE, it falls through to
-	 *   {@code canAttack()}'s own gating - so replicating this branch as a "false" would have been
-	 *   its own new divergence, not a fix.</li>
-	 *   <li>The NPC-retreat branch ({@code attacker.isNpc()}) - OMITTED, structurally irrelevant: this
-	 *   only executes when the ATTACKER is an NPC. For the bot's own outgoing-attack opportunity the
-	 *   attacker is always the bot (a player), so this branch never runs for this calculation - it
-	 *   governs the NPC's OWN attacks on the bot, already traced separately in the NPC PURSUIT
-	 *   FIDELITY pass.</li>
-	 *   <li>Same-tile exclusion - MATCHED ({@code this.getLocation().equals(target.getLocation())}).
-	 *   The mutating side effect ({@code MovementQueue.clippedStep()} + a {@code STEPPING_OUT} timer
-	 *   registration) is deliberately NOT replicated - an observation-only read must never mutate
-	 *   game state - but the BOOLEAN outcome (false) is preserved.</li>
-	 *   <li>{@code distance==0 && attacker.isPlayer()} - OMITTED as a separate check, argued
-	 *   equivalent: for two size-1 entities, {@code distance==0} and same-tile are the same condition,
-	 *   already covered above.</li>
-	 *   <li>{@code requiredDistance = attackDistance()} = 1 for a non-halberd weapon - MATCHED (base
-	 *   case).</li>
-	 *   <li><b>Both-attacker-and-target-moving -&gt; requiredDistance=2 - FIXED this pass</b> (was the
-	 *   omitted "accepted simplification" the HIT-RATE RECONCILIATION pass traced to ~49% false-positive
-	 *   "opportunities"). {@code canReach()} reads the TARGET's {@code isMoving()} once near its top and
-	 *   the ATTACKER's fresh at the check itself - both are per-TICK momentary flags
-	 *   ({@code MovementQueue.process()} sets {@code isMoving = moved} every tick it runs, not a
-	 *   longer-lived "mid-route" state), and by the time the bot's own {@code canReach()} call happens
-	 *   (player-combat barrier), the NPC's movement for this SAME tick already resolved in the earlier
-	 *   NPC-combat barrier - so reading both here, at flush-drain time, is the same tick-frame
-	 *   {@code canReach()} itself used, not a different one.</li>
-	 *   <li><b>Diagonal exclusion - a SECOND bug, found and fixed only by reading the full method this
-	 *   pass, not assumed from the prior version.</b> {@code canReach()}'s own condition is
-	 *   {@code !isMoving && !target.getMovementQueue().isMoving()} where {@code isMoving} IS
-	 *   {@code target.getMovementQueue().isMoving()} read earlier in the method - i.e. the same
-	 *   condition checked twice (a redundant repeat in Elvarg's own source, not two independent
-	 *   gates). The exclusion depends ONLY on the TARGET's movement; the ATTACKER's own movement does
-	 *   NOT gate it. The prior version of this replica incorrectly required BOTH sides stationary,
-	 *   which was MORE restrictive than the real check and produced the same DIRECTION of error as the
-	 *   both-moving bug (calling a diagonal tile "in range" when the target was moving but the
-	 *   attacker wasn't, a case the real engine excludes).</li>
-	 *   <li>Projectile-clipping check - OMITTED, confirmed irrelevant from source:
-	 *   {@code Mobile.useProjectileClipping()} returns {@code true} unless the combat method IS
-	 *   {@code MELEE_COMBAT} (`Mobile.java:293-295`) - false for this bot always, so the branch never
-	 *   applies to a melee attacker.</li>
-	 * </ul>
-	 * Called at flush-drain time (after this tick's movement AND combat fully resolve), matching the
-	 * POST-movement position {@code Combat.performNewAttack()} itself resolved against this same tick
-	 * (PROJECT_STATE.md section 8.2).
-	 */
-	private boolean isTargetInMeleeRange() {
-		if (target == null) {
-			return false;
-		}
-		if (this.getLocation().equals(target.getLocation())) {
-			return false;
-		}
-		final boolean targetMoving = target.getMovementQueue().isMoving();
-		final boolean attackerMoving = this.getMovementQueue().isMoving();
-		int requiredDistance = 1;
-		if (targetMoving && attackerMoving) {
-			requiredDistance = 2;
-		}
-		final int distance = this.calculateDistance(target);
-		if (distance > requiredDistance) {
-			return false;
-		}
-		if (!targetMoving && PathFinder.isDiagonalLocation(this, target)) {
-			return false;
-		}
-		return true;
 	}
 
 	/** Matches agent/observation.py's _clip01(x) exactly: max(0.0, min(1.0, x)). */

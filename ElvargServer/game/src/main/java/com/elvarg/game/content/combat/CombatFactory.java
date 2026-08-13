@@ -8,6 +8,7 @@ import java.util.Optional;
 import com.elvarg.game.content.sound.Sound;
 import com.elvarg.game.content.sound.SoundManager;
 import com.elvarg.game.collision.RegionManager;
+import com.elvarg.game.model.areas.impl.PrivateArea;
 import com.elvarg.game.content.PrayerHandler;
 import com.elvarg.game.content.Dueling.DuelRule;
 import com.elvarg.game.content.combat.WeaponInterfaces.WeaponInterface;
@@ -318,12 +319,20 @@ public class CombatFactory {
 		    return false;
 		}
 
-		// Don't allow diagonal attacks for smaller entities
-		if (method.type() == CombatType.MELEE && attacker.size() == 1 && target.size() == 1 && !isMoving && !target.getMovementQueue().isMoving()) {
-			if (PathFinder.isDiagonalLocation(attacker, target)) {
+		if (method.type() == CombatType.MELEE) {
+			// GEOMETRY-FIELD WIRING PASS (PROJECT_STATE.md section 13) -- diagonal exclusion and the
+			// wall-clipping check now delegate to meleeReach(), the single source of truth also used
+			// by the bot's own geometry telemetry (enemy_in_my_attack_range/enemy_can_reach_me), so
+			// the wall check can never drift out of sync with a hand-maintained replica again (it did
+			// once already: isTargetInMeleeRange() shipped without the wall fix). The diagonal case
+			// still needs its stepOut() side effect, which meleeReach() itself deliberately does not
+			// perform (side-effect-free by design, so telemetry reads can call it safely).
+			MeleeReachResult reachResult = meleeReach(attacker, target, distance, isMoving);
+			if (reachResult == MeleeReachResult.DIAGONAL) {
 				stepOut(attacker, target);
 				return false;
 			}
+			return reachResult == MeleeReachResult.REACHABLE;
 		}
 
         // Make sure we the path is clear for projectiles..
@@ -331,31 +340,96 @@ public class CombatFactory {
 			return false;
 		}
 
-		// MELEE WALL-CLIPPING FIDELITY FIX (PROJECT_STATE.md section 13): a wall directly between
-		// adjacent tiles blocks a real-OSRS melee attack (Wiki-corroborated -- see the audit), but
-		// useProjectileClipping() is false for melee (Mobile.java), so the projectile check above never
-		// runs for it. Scoped to distance==1 (standard weapons) deliberately -- halberds (range 2) are a
-		// real, documented exception that must not be caught here once a future weapon increment adds
-		// one. Diagonal adjacency for size-1 pairs is already excluded above (stepOut), so only the 4
-		// orthogonal cases need covering.
-		if (method.type() == CombatType.MELEE && distance == 1) {
-			int dx = targetPosition.getX() - attackerPosition.getX();
-			int dy = targetPosition.getY() - attackerPosition.getY();
-			if (dx == 0 && dy == 1 && RegionManager.blockedNorth(attackerPosition, attacker.getPrivateArea())) {
-				return false;
-			}
-			if (dx == 0 && dy == -1 && RegionManager.blockedSouth(attackerPosition, attacker.getPrivateArea())) {
-				return false;
-			}
-			if (dx == 1 && dy == 0 && RegionManager.blockedEast(attackerPosition, attacker.getPrivateArea())) {
-				return false;
-			}
-			if (dx == -1 && dy == 0 && RegionManager.blockedWest(attackerPosition, attacker.getPrivateArea())) {
-				return false;
-			}
-		}
-
 		return true;
+	}
+
+	/** Reasons {@link #meleeReach} can resolve to -- mirrors the existing {@code CanAttackResponse}
+	 * convention in this same file (different callers react differently to different rejections). */
+	public enum MeleeReachResult {
+		REACHABLE, DIAGONAL, WALL_BLOCKED
+	}
+
+	/**
+	 * Melee-reach geometry given the two entities are ALREADY confirmed within
+	 * {@code requiredDistance} tiles of each other (distance/both-moving/standing-under are
+	 * {@code canReach()}'s own general-purpose checks, shared with non-melee combat, and stay
+	 * there) -- this covers only the two MELEE-EXCLUSIVE geometry gates: diagonal exclusion for
+	 * size-1 pairs, and the wall-clipping check (PROJECT_STATE.md section 13's MELEE WALL-CLIPPING
+	 * FIDELITY FIX). Side-effect-free by design -- callers own any side effect (canReach() calls
+	 * {@code stepOut()} itself on {@code DIAGONAL}; telemetry reads do nothing). This is the SINGLE
+	 * SOURCE OF TRUTH for melee reach geometry, called from both canReach() and the bot's own
+	 * observation payload, closing the replica-drift class the project has been burned by twice
+	 * before (the both-moving and diagonal bugs in the old hand-maintained
+	 * {@code isTargetInMeleeRange()} replica) -- there is no longer a second copy of this logic to
+	 * drift.
+	 *
+	 * @param distance the caller's ALREADY-COMPUTED {@code attacker.calculateDistance(target)} (not
+	 *                  recomputed here, so this stays cheap to call from a hot per-tick telemetry
+	 *                  path without a second distance calculation).
+	 * @param isMoving  the target's movement-queue state, matching {@code canReach()}'s own
+	 *                  early-captured read (the attacker's own moving state is read fresh here, the
+	 *                  same asymmetric timing {@code canReach()} always used).
+	 */
+	public static MeleeReachResult meleeReach(Mobile attacker, Mobile target, int distance, boolean isMoving) {
+		if (attacker.size() == 1 && target.size() == 1 && !isMoving && !target.getMovementQueue().isMoving()
+				&& PathFinder.isDiagonalLocation(attacker, target)) {
+			return MeleeReachResult.DIAGONAL;
+		}
+		if (distance == 1 && meleeBlockedByWall(attacker.getLocation(), target.getLocation(), attacker.getPrivateArea())) {
+			return MeleeReachResult.WALL_BLOCKED;
+		}
+		return MeleeReachResult.REACHABLE;
+	}
+
+	/**
+	 * MELEE WALL-CLIPPING FIDELITY FIX (PROJECT_STATE.md section 13): a wall directly between
+	 * adjacent tiles blocks a real-OSRS melee attack (Wiki-corroborated -- see the audit), but
+	 * {@code useProjectileClipping()} is false for melee ({@code Mobile.java}), so the projectile
+	 * clipping check elsewhere in {@code canReach()} never runs for it. Scoped to distance==1
+	 * (standard weapons) by every caller deliberately -- halberds (range 2) are a real, documented
+	 * exception that must not be caught here once a future weapon increment adds one. Pure and
+	 * static: takes positions, not a distance, so it composes cleanly wherever a wall check alone
+	 * (not the full reach question) is what's needed.
+	 */
+	public static boolean meleeBlockedByWall(Location attackerPosition, Location targetPosition, PrivateArea privateArea) {
+		int dx = targetPosition.getX() - attackerPosition.getX();
+		int dy = targetPosition.getY() - attackerPosition.getY();
+		if (dx == 0 && dy == 1) {
+			return RegionManager.blockedNorth(attackerPosition, privateArea);
+		}
+		if (dx == 0 && dy == -1) {
+			return RegionManager.blockedSouth(attackerPosition, privateArea);
+		}
+		if (dx == 1 && dy == 0) {
+			return RegionManager.blockedEast(attackerPosition, privateArea);
+		}
+		if (dx == -1 && dy == 0) {
+			return RegionManager.blockedWest(attackerPosition, privateArea);
+		}
+		return false;
+	}
+
+	/**
+	 * Full melee-reach answer for a caller that has NOT already computed distance -- e.g. the bot's
+	 * own geometry telemetry (`enemy_in_my_attack_range`/`enemy_can_reach_me`), which has no other
+	 * reason to call {@code attacker.calculateDistance(target)} first. Folds in the same
+	 * distance/both-moving check {@code canReach()}'s general path performs, then delegates to
+	 * {@link #meleeReach} for the melee-exclusive gates -- so this is the ONE place a read-only
+	 * caller needs, and it can never drift from {@code canReach()} since both ultimately call the
+	 * same {@link #meleeReach}/{@link #meleeBlockedByWall}.
+	 */
+	public static boolean isMeleeReachable(Mobile attacker, Mobile target) {
+		if (attacker.getLocation().equals(target.getLocation())) {
+			return false;
+		}
+		boolean targetMoving = target.getMovementQueue().isMoving();
+		boolean attackerMoving = attacker.getMovementQueue().isMoving();
+		int requiredDistance = (targetMoving && attackerMoving) ? 2 : 1;
+		int distance = attacker.calculateDistance(target);
+		if (distance > requiredDistance) {
+			return false;
+		}
+		return meleeReach(attacker, target, distance, targetMoving) == MeleeReachResult.REACHABLE;
 	}
 
 
