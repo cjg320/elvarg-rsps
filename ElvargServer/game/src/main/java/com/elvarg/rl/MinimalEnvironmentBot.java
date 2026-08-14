@@ -67,10 +67,26 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * {@code ["nothing", "attack", "eat_food", "drink_prayer_pot", "drink_combat_pot",
 	 * "drink_defence_pot", "toggle_run"]} - "attack" is COMBAT_ACTIONS[1]. Hardcoded here rather
 	 * than read from a shared source (no cross-language import path exists) - if that list's
-	 * ordering ever changes, this drifts silently. Every other combat-head value currently
-	 * collapses to suppress (see the step branch below).
+	 * ordering ever changes, this drifts silently. Every combat-head value other than attack and
+	 * toggle_run (see {@link #COMBAT_ACTION_TOGGLE_RUN_INDEX}) still collapses to suppress (see
+	 * the step branch below).
 	 */
 	private static final int COMBAT_ACTION_ATTACK_INDEX = 1;
+
+	/**
+	 * Index of "toggle_run" within the same COMBAT_ACTIONS list - index 6, the last entry.
+	 * RUN/WALK ACTION INCREMENT pass (PROJECT_STATE.md section 13): matches
+	 * {@code sim/combat_env.py}'s own already-established semantics (a persistent
+	 * {@code is_running} toggle living inside the combat-action head, not a separate head -
+	 * {@code sim} is the spec here, per docs/PHASE2_DESIGN.md's re-expression rule, and it
+	 * already treats {@code toggle_run} as always-legal in {@code agent/actions.py}'s
+	 * {@code compute_action_masks()}). Wired UNCONDITIONALLY server-side (this class has no
+	 * concept of the Python-side {@code enable_run_control} compat flag - that flag's whole job
+	 * is to keep a compat-mode caller's action mask illegal for this index, and
+	 * {@code ElvargSocketEnv} additionally coerces a stray request defensively - see that
+	 * module's own doc).
+	 */
+	private static final int COMBAT_ACTION_TOGGLE_RUN_INDEX = 6;
 
 	/**
 	 * (dx, dy) deltas for agent/actions.py's MOVE_ACTIONS
@@ -115,11 +131,18 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * GEOMETRY-FIELD WIRING PASS: the queued protocol_version deferred-queue item, taken with that
 	 * pass. Started at 2 -- 1 is reserved to mean "the implicit pre-versioning format" every payload
 	 * before that pass used (no version field existed at all). ARENA 01 -- CHOREOGRAPHY + ARENA
-	 * DEFINITION pass (PROJECT_STATE.md section 13) bumps this to 3: the payload now also carries
-	 * arena_id (see buildObservationPayload()). Bump this and the Python side's
-	 * EXPECTED_PROTOCOL_VERSION together, deliberately, whenever the wire format changes.
+	 * DEFINITION pass bumped this to 3: the payload gained arena_id. RUN/WALK ACTION INCREMENT pass
+	 * (PROJECT_STATE.md section 13) bumps this to 4: no NEW payload key is added this time (the
+	 * always-emitted, monitoring-only run_energy field already existed) - what changes is BEHAVIOR,
+	 * not shape: combat_action_index==6 (toggle_run) goes from a pure no-op (collapsed into the
+	 * generic suppress branch, same as every other unimplemented value) to a real, stateful,
+	 * episode-crossing side effect. A stale client built against the pre-v4 contract could
+	 * unknowingly rely on that action being harmless-if-sent; the version bump forces it to
+	 * confront the change instead of silently inheriting new behavior. Bump this and the Python
+	 * side's EXPECTED_PROTOCOL_VERSION together, deliberately, whenever the wire CONTRACT changes -
+	 * that has always meant more than byte-format, per this precedent.
 	 */
-	private static final int PROTOCOL_VERSION = 3;
+	private static final int PROTOCOL_VERSION = 4;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -295,7 +318,21 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			lastStepAttackOffCooldown = false;
 			lastStepChoseAttack = false;
 		} else if ("step".equals(action)) {
-			// MOVE HEAD (index 0) applied FIRST, before the combat decode below - this ordering IS
+			// COMBAT ACTION INDEX parsed EARLY, before movement - RUN/WALK ACTION INCREMENT pass
+			// (PROJECT_STATE.md section 13). Needed so toggle_run (if requested) can flip
+			// isRunning BEFORE applyMoveAction() reads it for its own 2-tile-run queueing decision
+			// below - matching sim/combat_env.py's own within-tick order exactly (its step 3,
+			// "Player consumable: only toggle_run is modeled", runs before step 4, "Player
+			// movement" - see that module's own docstring). Parsed once here and reused below
+			// (was previously parsed later, inside the target!=null block, when toggle_run was
+			// still inert and this ordering didn't matter).
+			final int combatActionIndex = parseCombatActionIndex(step.message());
+			if (combatActionIndex == COMBAT_ACTION_TOGGLE_RUN_INDEX) {
+				this.setRunning(!this.isRunning());
+				logger.info("[MinimalEnv] step received, toggled running to " + this.isRunning());
+			}
+
+			// MOVE HEAD (index 0) applied next, before the combat decode below - this ordering IS
 			// the same-tick move+attack semantics decision (PROJECT_STATE.md section 13's move-head
 			// pass). See applyMoveAction()'s own doc for the full reasoning; short version: idle is
 			// side-effect-free, and a real direction hard-cancels combat (target/combatFollowing) via
@@ -320,7 +357,6 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// the observation contract (agent/observation.py's FIELD_ORDER), same convention as
 				// bot_x/bot_y/run_energy.
 				lastStepAttackOffCooldown = !this.getTimers().has(TimerKey.COMBAT_ATTACK);
-				final int combatActionIndex = parseCombatActionIndex(step.message());
 				lastStepChoseAttack = (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX);
 				if (combatActionIndex == COMBAT_ACTION_ATTACK_INDEX) {
 					// DEFERRED RESOLUTION, not an immediate attack() call - this is the other half of
@@ -357,11 +393,14 @@ public class MinimalEnvironmentBot extends PlayerBot {
 							+ "getCombat().process())");
 				} else {
 					// SUPPRESS: attack-only scope (Model A, PROJECT_STATE.md section 15 Group A
-					// open question 3) - every other combat-head value currently collapses here,
-					// including the not-yet-wired consumable actions (eat_food/drink_*/
-					// toggle_run pending their own slice), not just "nothing". Prayer head values
-					// are ignored entirely (masked-inert, section 13's ACTION-SPACE CONTRACT
-					// DECISION).
+					// open question 3) - every other combat-head value still collapses here,
+					// including toggle_run (RUN/WALK ACTION INCREMENT pass: its own side effect
+					// already fired ABOVE, before movement - it still isn't "attack", so this tick
+					// still suppresses combat, exactly matching sim/combat_env.py's own mutual
+					// exclusivity, where combat_action is a single categorical choice per tick) and
+					// the still-not-yet-wired consumable actions (eat_food/drink_*), not just
+					// "nothing". Prayer head values are ignored entirely (masked-inert, section 13's
+					// ACTION-SPACE CONTRACT DECISION).
 					//
 					// Combat.reset() here is NOT optional cleanup - it's the only thing that
 					// actually suppresses the attack. `target` stays set across ticks once first
@@ -507,6 +546,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// full-restore value (100) as the existing admin-restore precedent (Player.java's
 			// setRunEnergy(100) call in its own full-restore path) - not a new/guessed constant.
 			this.setRunEnergy(100);
+
+			// RUN/WALK ACTION INCREMENT pass (PROJECT_STATE.md section 13): same non-stationarity
+			// class as run energy just above, newly relevant now that toggle_run actually flips
+			// isRunning (previously inert, so this was never reachable state). Without an explicit
+			// reset, isRunning would carry over from whatever the PREVIOUS episode last toggled it
+			// to. true, not sim/entities.Player's own is_running=False dataclass default (a stated
+			// choice, not an oversight - see this pass's own doc: matching Elvarg's pre-existing
+			// Player-construction default costs nothing extra to wire, preserves every episode's
+			// historical always-run starting condition with zero behavior change for compat-mode
+			// callers, and real OSRS players overwhelmingly leave the orb toggled on rather than
+			// off by convention - sim's False is a dataclass-field default, not a deliberate
+			// simulated-lore choice this pass is obligated to mirror).
+			this.setRunning(true);
 
 			// TOLERANCE-CLOCK FIX (PROJECT_STATE.md section 13, follow-up to the NPC AGGRESSION
 			// pass): moved from onLogin() (start-once) to here (restart-every-episode), reversing
@@ -839,6 +891,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				+ ",\"npc_x\":" + target.getLocation().getX()
 				+ ",\"npc_y\":" + target.getLocation().getY()
 				+ ",\"run_energy\":" + this.getRunEnergy()
+				// RUN/WALK ACTION INCREMENT pass (PROJECT_STATE.md section 13): monitoring-only,
+				// same provenance convention as bot_x/run_energy -- lets a caller (the validator,
+				// training-side diagnostics) directly confirm toggle_run's effect instead of
+				// inferring it from position deltas across ticks. Not part of the observation
+				// contract; a boolean toggle state is trivially re-derivable from run_energy_fraction
+				// trends anyway, so this is convenience telemetry, not a new percept.
+				+ ",\"is_running\":" + this.isRunning()
 				+ ",\"attack_off_cooldown\":" + lastStepAttackOffCooldown
 				+ ",\"attack_chosen\":" + lastStepChoseAttack
 				// GEOMETRY-FIELD WIRING PASS: was isTargetInMeleeRange(), a hand-maintained replica of
@@ -978,6 +1037,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * pre-check idiom, since MovementQueue.process()'s own per-tick consumption only checks NPC
 	 * occupancy via canWalkTo(), not terrain) - a blocked tile is logged and simply not queued,
 	 * never silently teleported through.
+	 * <p>
+	 * RUN/WALK ACTION INCREMENT pass (PROJECT_STATE.md section 13): the run-step queueing
+	 * condition also checks {@code getRunEnergy() > 0}, not {@code isRunning()} alone - matching
+	 * {@code sim.entities.Player.movement_tiles_this_tick()}'s own {@code is_running AND
+	 * run_energy > 0} check exactly. Needed because Elvarg's OWN native 0-energy auto-disable
+	 * ({@code MovementQueue.drainRunEnergy()}) is REACTIVE (it only flips {@code isRunning} false
+	 * as a side effect of a tick that just finished draining the last point) - it does not
+	 * retroactively stop THIS tick's queueing decision if {@code isRunning} was freshly toggled
+	 * true (via {@code toggle_run}, above) while energy was independently already at 0 from
+	 * earlier drain. Without this extra check, that one specific sequence (toggle to run while at
+	 * 0 energy) would still queue a 2-tile step for a single tick, contradicting Part 1's own
+	 * audited real behavior ("0 energy = the step resolves as walk regardless of the requested
+	 * speed"). Elvarg's own reactive auto-disable is otherwise sufficient and untouched.
 	 */
 	private void applyMoveAction(int moveActionIndex) {
 		if (moveActionIndex <= 0) {
@@ -998,7 +1070,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		}
 		this.getMovementQueue().walkStep(dx, dy);
 
-		if (this.isRunning()) {
+		if (this.isRunning() && this.getRunEnergy() > 0) {
 			final Location step2 = step1.transform(dx, dy);
 			if (RegionManager.canMove(step1, step2, size, size, this.getPrivateArea())) {
 				this.getMovementQueue().addStep(step2);
