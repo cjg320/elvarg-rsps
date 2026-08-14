@@ -26,6 +26,14 @@ import java.util.List;
  * ratio around 3x in the bot's favor (fight too lopsided for cover to matter), while the Chaos
  * druid warrior's Wiki-verified stats land near parity (~1.24x) -- see that pass's own finalist
  * arithmetic for the full survey and rejected alternatives.</li>
+ * <li>ARENA_02 -- the TWO-ARM TRAINING RUN pass's control arm (PROJECT_STATE.md section 13):
+ * IDENTICAL spawn pair/radius to ARENA_00 (same ground, zero PLACED obstacles), but with
+ * ARENA_01's audited Chaos druid warrior occupant instead of ARENA_00's Hobgoblin -- so the two
+ * arms of that experiment differ in EXACTLY one variable (designed cover present or absent),
+ * never touching ARENA_00 itself (the historical baseline stays byte-stable). Framed honestly as
+ * a NATURAL-GEOMETRY arm, not a sterile no-cover control: the ARENA TOOLCHAIN footprint sweep
+ * already proved this ground is a walled ruin with real cover within a few tiles of spawn, so
+ * undesigned cover use emerging here is a headline result, not a broken control.</li>
  * </ul>
  * <p>
  * Selection: the {@code ARENA_ID} environment variable, read once in {@code Server.main()} -- the
@@ -110,6 +118,19 @@ public final class ArenaDefinition {
                     new ObstacleSpec(979, new Location(3086, 3465, 0), 0, 2)   // east-blocking
             ));
 
+    // TWO-ARM TRAINING RUN pass (PROJECT_STATE.md section 13): control arm. Same botSpawn/npcSpawn/
+    // radius as ARENA_00 -- zero PLACED obstacles -- but ARENA_01's audited Chaos druid warrior
+    // (id 2890) occupant, so the only variable differing from ARENA_01 is the designed L-corner
+    // cover. ARENA_00 itself is untouched (still Hobgoblin, still the byte-stable historical
+    // baseline) -- this is a THIRD definition, not a mutation of an existing one.
+    public static final ArenaDefinition ARENA_02 = new ArenaDefinition(
+            "ARENA_02",
+            new Location(3089, 3466),
+            2890,
+            new Location(3090, 3466),
+            6,
+            Collections.emptyList());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -119,8 +140,9 @@ public final class ArenaDefinition {
         return switch (requested) {
             case "ARENA_00" -> ARENA_00;
             case "ARENA_01" -> ARENA_01;
+            case "ARENA_02" -> ARENA_02;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00 or ARENA_01)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, or ARENA_02)");
         };
     }
 }
