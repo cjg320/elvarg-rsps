@@ -682,6 +682,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// tick calls performNewAttack() again, by which point registration has genuinely drained and
 			// canAttack() returns CAN_ATTACK for real -- this fix only removes the race from
 			// ENGAGEMENT/PURSUIT starting, not from combat validation itself.
+			// LOCKSTEP NOTE (ARENA VALIDATOR pass, PROJECT_STATE.md section 13): these three lines are a
+			// deliberate REPLICA of Combat.performNewAttack()'s own pre-validation field sets, not an
+			// independent design -- if a future stock change to that block ever adds, removes, or reorders
+			// what it sets before its canReach()/canAttack() gate, this replica drifts silently out of sync
+			// with it (the same replica-drift class this project has been burned by before -- see the
+			// GEOMETRY-FIELD WIRING PASS's own isTargetInMeleeRange() retirement). Check
+			// Combat.performNewAttack() first whenever touching this block.
 			target.getCombat().setTarget(this);
 			target.setCombatFollowing(this);
 			target.setMobileInteraction(this);
