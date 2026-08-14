@@ -55,12 +55,12 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	private static final long SESSION_WAIT_BUDGET_MS = 10_000;
 
 	/**
-	 * The controlled arena's known tiles (PROJECT_STATE.md section 8.1). Deliberately duplicated
-	 * here rather than shared with Server.java's/withMeleeLoadout()'s own literals of the same
-	 * coordinates - this is one protocol slice (the reset verb), not a location-constant refactor.
+	 * The active arena's spawn tiles/obstacle config (ARENA 01 -- CHOREOGRAPHY + ARENA DEFINITION
+	 * pass, PROJECT_STATE.md section 13). Replaces the former hardcoded ARENA_BOT_LOCATION/
+	 * ARENA_NPC_LOCATION constants (PROJECT_STATE.md section 8.1) -- see {@link ArenaDefinition}'s
+	 * own doc for the ARENA_ID selection mechanism and both definitions' full field values.
 	 */
-	private static final Location ARENA_BOT_LOCATION = new Location(3089, 3466);
-	private static final Location ARENA_NPC_LOCATION = new Location(3090, 3466);
+	private final ArenaDefinition arena;
 
 	/**
 	 * Index of "attack" within agent/actions.py's COMBAT_ACTIONS list on the Python side:
@@ -112,12 +112,14 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	private static final double MAX_OBSERVABLE_DISTANCE = 20.0;
 
 	/**
-	 * GEOMETRY-FIELD WIRING PASS: the queued protocol_version deferred-queue item, taken with this
-	 * pass. Starts at 2 -- 1 is reserved to mean "the implicit pre-versioning format" every payload
-	 * before this pass used (no version field existed at all). Bump this and the Python side's
-	 * expected-version check together, deliberately, whenever the wire format changes.
+	 * GEOMETRY-FIELD WIRING PASS: the queued protocol_version deferred-queue item, taken with that
+	 * pass. Started at 2 -- 1 is reserved to mean "the implicit pre-versioning format" every payload
+	 * before that pass used (no version field existed at all). ARENA 01 -- CHOREOGRAPHY + ARENA
+	 * DEFINITION pass (PROJECT_STATE.md section 13) bumps this to 3: the payload now also carries
+	 * arena_id (see buildObservationPayload()). Bump this and the Python side's
+	 * EXPECTED_PROTOCOL_VERSION together, deliberately, whenever the wire format changes.
 	 */
-	private static final int PROTOCOL_VERSION = 2;
+	private static final int PROTOCOL_VERSION = 3;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -155,7 +157,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	private final CombatInteraction noOpCombatInteraction;
 	private final MovementInteraction noOpMovementInteraction;
 
-	public MinimalEnvironmentBot(PlayerBotDefinition definition) {
+	public MinimalEnvironmentBot(PlayerBotDefinition definition, ArenaDefinition arena) {
 		// Replace the incoming definition's FighterPreset with our own bespoke melee loadout
 		// (MinimalMeleeFighterPreset) - username and spawn location are preserved from
 		// `definition` (PLAYER_BOTS[0]), only the gear/stats/combat-actions change. This is the
@@ -165,7 +167,8 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		// must be neutered via an empty FighterPreset.getCombatActions() array - which
 		// MinimalMeleeFighterPreset already returns), just wired through our own preset instead
 		// of wrapping ObbyMauler's.
-		super(withMeleeLoadout(definition));
+		super(withMeleeLoadout(definition, arena));
+		this.arena = arena;
 		instance = this;
 		this.noOpCombatInteraction = new NoOpCombatInteraction(this);
 		this.noOpMovementInteraction = new NoOpMovementInteraction(this);
@@ -186,15 +189,16 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		logger.info("[MinimalEnv] bot constructed: " + definition.getUsername());
 	}
 
-	private static PlayerBotDefinition withMeleeLoadout(PlayerBotDefinition definition) {
+	private static PlayerBotDefinition withMeleeLoadout(PlayerBotDefinition definition, ArenaDefinition arena) {
 		// Override the spawn location instead of preserving definition.getSpawnLocation()
 		// (PLAYER_BOTS[0]'s (3085, 3528), inside Wilderness level 2 - confirmed via
-		// WildernessArea's Boundary(2940, 3392, 3525, 3968)). (3089, 3466) is verified
-		// non-wilderness, non-multi, walkable (live RegionManager.blocked() check), and >55
-		// tiles from the nearest default NPC spawn. Entirely within com.elvarg.rl - GameConstants
-		// (PLAYER_BOTS[0]'s own constant, shared with the stock login-triggered bot-spawn loop)
-		// is left untouched.
-		return new PlayerBotDefinition(definition.getUsername(), new Location(3089, 3466),
+		// WildernessArea's Boundary(2940, 3392, 3525, 3968)) with the selected arena's own bot
+		// spawn (ARENA 01 -- CHOREOGRAPHY + ARENA DEFINITION pass) - (3089, 3466) for both
+		// ARENA_00/ARENA_01 today, verified non-wilderness, non-multi, walkable (live
+		// RegionManager.blocked() check), and >55 tiles from the nearest default NPC spawn.
+		// Entirely within com.elvarg.rl - GameConstants (PLAYER_BOTS[0]'s own constant, shared
+		// with the stock login-triggered bot-spawn loop) is left untouched.
+		return new PlayerBotDefinition(definition.getUsername(), arena.botSpawn,
 				new MinimalMeleeFighterPreset());
 	}
 
@@ -455,7 +459,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// would otherwise survive the teleport below and walk the freshly-reset bot off its
 			// arena tile on the very next tick.
 			this.getMovementQueue().reset();
-			this.moveTo(ARENA_BOT_LOCATION);
+			this.moveTo(arena.botSpawn);
 			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
 
 			// EQUIPMENT-LOSS FIX (Step 2's named design consequence): re-assert the authored melee
@@ -590,7 +594,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// (never-died) NPC never carried this stale flag, which is why this was invisible until a
 			// pass specifically walked the bot away AFTER forcing deaths first.
 			target.getMovementQueue().setBlockMovement(false);
-			target.moveTo(ARENA_NPC_LOCATION);
+			target.moveTo(arena.npcSpawn);
 			target.setHitpoints(target.getCurrentDefinition().getHitpoints());
 			// TRUE when this call just enqueued a re-registration -- World.process()'s NPC add/remove
 			// queue draining runs EARLY in that method (before player processing, where this code runs),
@@ -650,7 +654,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					logger.warning("[MinimalEnv] reset: target missing from World.getNpcs() despite the churn-root "
 							+ "fix (NPC-INSTANCE-LOSS backstop firing -- see PROJECT_STATE.md section 13) -- recovering");
 					TaskManager.cancelTasks(this.target);
-					final NPC recovered = NPC.create(this.target.getId(), ARENA_NPC_LOCATION);
+					final NPC recovered = NPC.create(this.target.getId(), arena.npcSpawn);
 					World.getAddNPCQueue().add(recovered);
 					this.target = recovered;
 				}
@@ -850,6 +854,11 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// The Python side checks this on reset and raises loudly on a mismatch, so a future
 				// wire-format fork fails loud instead of silently misparsing.
 				+ ",\"protocol_version\":" + PROTOCOL_VERSION
+				// ARENA 01 -- CHOREOGRAPHY + ARENA DEFINITION pass (PROJECT_STATE.md section 13):
+				// trainer-telemetry label, same provenance convention as bot_x/npc_x/diag_join_key --
+				// NEVER whitelisted into the observation vector (it's a label, not a percept; the
+				// anti-memorization plan depends on the policy never being told which arena it's in).
+				+ ",\"arena_id\":\"" + arena.id + "\""
 				+ ",\"diag_join_key\":" + this.flushCounter
 				// PERMANENT TRIPWIRE (EQUIPMENT-LOSS FIX pass, PROJECT_STATE.md section 13): the
 				// live max melee hit, read the same way the real accuracy/damage rolls do

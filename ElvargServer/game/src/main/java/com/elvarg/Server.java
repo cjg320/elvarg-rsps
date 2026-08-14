@@ -4,12 +4,14 @@ import com.elvarg.game.GameBuilder;
 import com.elvarg.game.GameConstants;
 import com.elvarg.game.World;
 import com.elvarg.game.entity.impl.npc.NPC;
-import com.elvarg.game.model.Location;
+import com.elvarg.game.entity.impl.object.GameObject;
+import com.elvarg.game.entity.impl.object.ObjectManager;
 import com.elvarg.net.NetworkBuilder;
 import com.elvarg.net.NetworkConstants;
 import com.elvarg.plugin.event.EventManager;
 import com.elvarg.plugin.event.impl.ServerBootEvent;
 import com.elvarg.plugin.event.impl.ServerStartedEvent;
+import com.elvarg.rl.ArenaDefinition;
 import com.elvarg.rl.MinimalEnvironmentBot;
 import com.elvarg.rl.MinimalSocketServer;
 import com.elvarg.util.ShutdownHook;
@@ -67,17 +69,20 @@ public class Server {
             EventManager.INSTANCE.postAndWait(new ServerBootEvent());
             new NetworkBuilder().initialize(NetworkConstants.GAME_PORT);
             logger.info(GameConstants.NAME + " is now online!");
+            // ARENA 01 -- CHOREOGRAPHY + ARENA DEFINITION pass (PROJECT_STATE.md section 13): bot
+            // spawn, NPC id/spawn, NPCMovementCoordinator radius, and (new with ARENA_01) the wall
+            // obstacle list all now come from a selected ArenaDefinition rather than being hardcoded
+            // here -- see that class's own doc for the ARENA_ID env-var selection mechanism and the
+            // full provenance of ARENA_00's numbers (unchanged from every prior pass's literals).
+            ArenaDefinition arena = ArenaDefinition.select();
+            logger.info("[Server] selected arena: " + arena.id);
+
             // PlayerBot's own constructor already queues itself via World.getAddPlayerQueue()
             // (confirmed: PlayerBot.java:77-79) - do not add it again here. Traced and confirmed
             // harmless if done (MobileList.add()'s isRegistered() guard no-ops the second add,
             // so there's no double-processing), but redundant and worth not doing.
-            MinimalEnvironmentBot bot = new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0]);
-            // Hobgoblin (npc id 3049), 1 tile east of the bot's spawn (3089, 3466) - non-diagonal,
-            // so Chebyshev distance is unambiguously 1 regardless of any diagonal-melee fidelity
-            // question. (3089/3090, 3466) is verified non-wilderness, non-multi, walkable, and
-            // >55 tiles from the nearest default NPC spawn (see MinimalEnvironmentBot.withMeleeLoadout()
-            // for the matching bot-side spawn override and the verification evidence).
-            NPC target = NPC.create(3049, new Location(3090, 3466));
+            MinimalEnvironmentBot bot = new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0], arena);
+            NPC target = NPC.create(arena.npcId, arena.npcSpawn);
             World.getAddNPCQueue().add(target);
             bot.setTarget(target);
             // PURSUIT-RACE FIX + PATHFINDING CORRECTION pass (PROJECT_STATE.md section 13): NPC.create()
@@ -86,13 +91,21 @@ public class Server {
             // AWAY/RETREATING transition fires on ANY nonzero drift from spawn) that both routes the NPC
             // via the REAL PathFinder toward its spawn tile and calls npc.getCombat().reset() every tick
             // while RETREATING+inCombat, independent of and compounding the already-fixed pursuit race.
-            // 6 is the mode among the NONZERO radius values on the closest real precedent in
-            // data/definitions/npc_spawns.json: no id=3049 spawn exists there, but 11 real spawns of
-            // Hobgoblin id=2241 (same species, combatFollowDistance=7 like ours) do -- radius distribution
-            // {0:5, 6:3, 1:1, 2:1, 3:1}; 6 is both the nonzero mode and comfortably covers the arena's
-            // designed cover-site distance (Chebyshev 4 from spawn) without being an unbounded/fabricated
-            // leash. Approximation pending an OSRS Wiki cross-check, not a Java default omission anymore.
-            target.getMovementCoordinator().setRadius(6);
+            // See ArenaDefinition's own doc for where the radius=6 value itself came from (unchanged
+            // by this pass's refactor, just relocated out of this hardcoded line).
+            target.getMovementCoordinator().setRadius(arena.npcCoordinatorRadius);
+
+            // ARENA_01's L-corner (or whatever future arena's obstacle list) registered here, at
+            // boot, permanently -- the same ObjectManager.register(obj, true) runtime-registration
+            // path every prior pass's TEMP wall instrumentation used by hand, now config-driven.
+            for (ArenaDefinition.ObstacleSpec obstacle : arena.obstacles) {
+                GameObject object = new GameObject(obstacle.objectId, obstacle.location, obstacle.type,
+                        obstacle.direction, null);
+                ObjectManager.register(object, true);
+                logger.info("[Server] registered arena obstacle: id=" + obstacle.objectId
+                        + " loc=" + obstacle.location + " dir=" + obstacle.direction);
+            }
+
             new MinimalSocketServer(7070).start();
             EventManager.INSTANCE.post(new ServerStartedEvent());
         } catch (Exception e) {
