@@ -20,8 +20,12 @@ import java.util.List;
  * this is the regression anchor, not a new arena design.</li>
  * <li>ARENA_01 -- the ARENA VALIDATOR / ARENA 01 CHOREOGRAPHY passes' winning geometry: the 2-wall
  * L-corner (object id 979 at (3086,3465), dir=1 north-blocking + dir=2 east-blocking) confirmed
- * durable across 4 reach-denial cycles under correct step-out choreography (this pass's own live
- * tick data).</li>
+ * durable across 4 reach-denial cycles under correct step-out choreography. Occupant swapped from
+ * Hobgoblin (id 3049) to Chaos druid warrior (id 2890) by the HARDER-NPC FIDELITY AUDIT pass
+ * (PROJECT_STATE.md section 13): the Hobgoblin's Wiki-verified stats give a stand-and-trade TTK
+ * ratio around 3x in the bot's favor (fight too lopsided for cover to matter), while the Chaos
+ * druid warrior's Wiki-verified stats land near parity (~1.24x) -- see that pass's own finalist
+ * arithmetic for the full survey and rejected alternatives.</li>
  * </ul>
  * <p>
  * Selection: the {@code ARENA_ID} environment variable, read once in {@code Server.main()} -- the
@@ -84,12 +88,21 @@ public final class ArenaDefinition {
 
     // ARENA VALIDATOR / ARENA 01 CHOREOGRAPHY passes (PROJECT_STATE.md section 13): same spawn
     // pair/radius as ARENA_00, plus the 2-wall L-corner at (3086,3465) confirmed durable under
-    // correct step-out choreography (4/4 cycles, zero incoming damage while hidden, this pass's
-    // own live data).
+    // correct step-out choreography (4/4 cycles, zero incoming damage while hidden).
+    //
+    // HARDER-NPC FIDELITY AUDIT pass (PROJECT_STATE.md section 13): npcId swapped from Hobgoblin
+    // (3049) to Chaos druid warrior (2890) -- melee-only, size 1, aggressive to combat level 35
+    // (37*2=74 >= 35), retreats=true, and the ONLY finalist surveyed whose Wiki-verified stats
+    // (atk32/str34/def25, hp40, maxHit5, attackSpeed5) land the stand-and-trade TTK ratio near
+    // parity (~1.24x in the bot's favor) rather than heavily lopsided either direction. Its
+    // npc_defs.json entry (id 2890, the only ID variant -- no copy-paste-across-variants risk)
+    // matched the Wiki exactly field-for-field; no data fix was needed, unlike the Hobgoblin.
+    // combatFollowDistance is also 7 for this NPC (same as Hobgoblin's), so npcCoordinatorRadius=6
+    // carries over under the same precedent reasoning, unchanged.
     public static final ArenaDefinition ARENA_01 = new ArenaDefinition(
             "ARENA_01",
             new Location(3089, 3466),
-            3049,
+            2890,
             new Location(3090, 3466),
             6,
             List.of(
