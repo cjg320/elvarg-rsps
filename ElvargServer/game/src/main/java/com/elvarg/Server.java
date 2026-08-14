@@ -80,6 +80,19 @@ public class Server {
             NPC target = NPC.create(3049, new Location(3090, 3466));
             World.getAddNPCQueue().add(target);
             bot.setTarget(target);
+            // PURSUIT-RACE FIX + PATHFINDING CORRECTION pass (PROJECT_STATE.md section 13): NPC.create()
+            // bypasses NpcSpawnDefinitionLoader (json-spawn-only), so NPCMovementCoordinator.radius was
+            // never set and stayed at Java's default 0 -- a degenerate leash (NPCMovementCoordinator.java's
+            // AWAY/RETREATING transition fires on ANY nonzero drift from spawn) that both routes the NPC
+            // via the REAL PathFinder toward its spawn tile and calls npc.getCombat().reset() every tick
+            // while RETREATING+inCombat, independent of and compounding the already-fixed pursuit race.
+            // 6 is the mode among the NONZERO radius values on the closest real precedent in
+            // data/definitions/npc_spawns.json: no id=3049 spawn exists there, but 11 real spawns of
+            // Hobgoblin id=2241 (same species, combatFollowDistance=7 like ours) do -- radius distribution
+            // {0:5, 6:3, 1:1, 2:1, 3:1}; 6 is both the nonzero mode and comfortably covers the arena's
+            // designed cover-site distance (Chebyshev 4 from spawn) without being an unbounded/fabricated
+            // leash. Approximation pending an OSRS Wiki cross-check, not a Java default omission anymore.
+            target.getMovementCoordinator().setRadius(6);
             new MinimalSocketServer(7070).start();
             EventManager.INSTANCE.post(new ServerStartedEvent());
         } catch (Exception e) {

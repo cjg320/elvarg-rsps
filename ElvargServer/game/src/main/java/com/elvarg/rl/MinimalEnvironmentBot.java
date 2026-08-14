@@ -580,6 +580,16 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			target.getCombat().reset();
 			target.getCombat().getHitQueue().clear();
 			target.getCombat().setUnderAttack(null);
+			// MOVEMENT-BLOCK FIX (PROJECT_STATE.md section 13, PURSUIT-RACE FIX pass): NPCDeathTask.java:58
+			// sets MovementQueue.blockMovement=true when the NPC's death animation starts and NOTHING ever
+			// clears it for a reused NPC instance (only Player.java:731/TeleportHandler.java:93 clear it,
+			// player-only) -- discovered live diagnosing why the pursuit-race fix's own combatFollowing
+			// linkage held correctly (confirmed via direct telemetry) yet the NPC still never moved after
+			// a death-triggered reset: getMobility() reads INVALID whenever isMovementBlocked() is true,
+			// which silently no-ops MovementQueue.process() regardless of combatFollowing. A fresh
+			// (never-died) NPC never carried this stale flag, which is why this was invisible until a
+			// pass specifically walked the bot away AFTER forcing deaths first.
+			target.getMovementQueue().setBlockMovement(false);
 			target.moveTo(ARENA_NPC_LOCATION);
 			target.setHitpoints(target.getCurrentDefinition().getHitpoints());
 			// TRUE when this call just enqueued a re-registration -- World.process()'s NPC add/remove
@@ -645,6 +655,36 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					this.target = recovered;
 				}
 			}
+
+			// PURSUIT-RACE FIX (PROJECT_STATE.md section 13): deterministic episode-start engagement,
+			// replacing dependence on NpcAggression's own per-tick localNpcs-population race (root-caused
+			// last pass -- player.getLocalNpcs() reads empty on the exact tick NpcAggression.process()
+			// runs right after reset, missing the tight aggressionDistance() window if the bot has already
+			// started moving away by the next tick).
+			//
+			// NOT simply npc.getCombat().attack(player) (NpcAggression.java:101's own call) -- tried that
+			// first, live-diagnosed it failing specifically on a just-died-and-reregistered NPC:
+			// Combat.attack() -> performNewAttack() sets combatFollowing unconditionally, but then its own
+			// CombatFactory.canAttack() -> validTarget() check requires attacker.isRegistered(), which is
+			// still false this same tick (World.getAddNPCQueue().add(target) two lines above cannot have
+			// drained yet -- World.process()'s NPC-queue drain runs EARLY, before the player-processing
+			// pass this method runs inside of, per the NPC-CHURN ROOT FIX comment above). canAttack()
+			// returning INVALID_TARGET then hits performNewAttack()'s own INVALID_TARGET case, which calls
+			// character.getCombat().reset() -- wiping the combatFollowing/target that were just set, in
+			// the SAME call. Confirmed live: npc_target/combatFollowing were null immediately after
+			// attack() specifically when justReregistered was true, non-null when it was false.
+			//
+			// Fix: set exactly the three fields performNewAttack() sets BEFORE its registration-gated
+			// validation (target, combatFollowing, mobileInteraction) directly, bypassing that gate --
+			// safe here because this is a fully controlled single-matchup arena (no PvP, no wilderness,
+			// no duels for validTarget()/canAttack() to legitimately reject). The actual first attack ROLL
+			// still happens through the normal, fully-validated path: target's own next Combat.process()
+			// tick calls performNewAttack() again, by which point registration has genuinely drained and
+			// canAttack() returns CAN_ATTACK for real -- this fix only removes the race from
+			// ENGAGEMENT/PURSUIT starting, not from combat validation itself.
+			target.getCombat().setTarget(this);
+			target.setCombatFollowing(this);
+			target.setMobileInteraction(this);
 
 			return null;
 		} catch (Exception e) {
