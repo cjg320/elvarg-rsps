@@ -34,6 +34,20 @@ import java.util.List;
  * a NATURAL-GEOMETRY arm, not a sterile no-cover control: the ARENA TOOLCHAIN footprint sweep
  * already proved this ground is a walled ruin with real cover within a few tiles of spawn, so
  * undesigned cover use emerging here is a headline result, not a broken control.</li>
+ * <li>ARENA_03 -- the INCENTIVE-GEOMETRY ITERATION TWO pass (PROJECT_STATE.md section 13):
+ * ARENA_01's exact geometry (same spawns, radius=6, the 2-wall L-corner) with the occupant
+ * swapped Chaos druid warrior (2890) -&gt; Earth warrior (2840). Selected because a stand-and-trade
+ * against Chaos druid warrior nets the bot positive terminal EV (~+29 at gamma=0.99, empirical
+ * p_trade~0.80) that already beats a clumsy cover attempt (~+7.7) outright -- cover was never the
+ * better option, so no policy needed to find it. Earth warrior's Wiki-verified stats
+ * (atk42/str42/def42, hp54, maxHit5, attackSpeed4 ticks) push EV(trade) negative across the whole
+ * plausible p_trade range (-15.6 at p=0.45 to +7.6 at p=0.80; only clearly positive above p~0.72),
+ * making trade unattractive without invoking a timeout penalty (that lever was tried, on record as
+ * ineffective at gamma=0.99 due to temporal attenuation -- see the TIMEOUT-PENALTY EXPERIMENT and
+ * INCENTIVE-GEOMETRY ITERATION TWO passes). npc_defs.json id 2840 had a real data bug fixed by this
+ * pass: attackSpeed was 6, Wiki says 4 -- same class of error as the historical Hobgoblin fix, now
+ * corrected. combatFollowDistance is also 7 for this NPC, so npcCoordinatorRadius=6 carries over
+ * unchanged, same precedent as ARENA_01/02.</li>
  * </ul>
  * <p>
  * Selection: the {@code ARENA_ID} environment variable, read once in {@code Server.main()} -- the
@@ -131,6 +145,20 @@ public final class ArenaDefinition {
             6,
             Collections.emptyList());
 
+    // INCENTIVE-GEOMETRY ITERATION TWO pass (PROJECT_STATE.md section 13): ARENA_01's exact
+    // geometry (spawns, radius, the 2-wall L-corner) with npcId swapped 2890 -> 2840 (Earth
+    // warrior). One variable changed from ARENA_01 -- the occupant -- everything else identical.
+    public static final ArenaDefinition ARENA_03 = new ArenaDefinition(
+            "ARENA_03",
+            new Location(3089, 3466),
+            2840,
+            new Location(3090, 3466),
+            6,
+            List.of(
+                    new ObstacleSpec(979, new Location(3086, 3465, 0), 0, 1),  // north-blocking
+                    new ObstacleSpec(979, new Location(3086, 3465, 0), 0, 2)   // east-blocking
+            ));
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -141,8 +169,9 @@ public final class ArenaDefinition {
             case "ARENA_00" -> ARENA_00;
             case "ARENA_01" -> ARENA_01;
             case "ARENA_02" -> ARENA_02;
+            case "ARENA_03" -> ARENA_03;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, or ARENA_02)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, or ARENA_03)");
         };
     }
 }
