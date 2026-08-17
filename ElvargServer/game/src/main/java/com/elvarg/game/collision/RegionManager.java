@@ -484,7 +484,7 @@ public class RegionManager {
             }
         } else if (type >= 0 && type <= 3) {
             if (def.solid) {
-                removeClippingForVariableObject(x, y, height, type, direction, def.solid, object.getPrivateArea());
+                removeClippingForVariableObject(x, y, height, type, direction, def.impenetrable, object.getPrivateArea());
             }
         }
     }

@@ -98,9 +98,12 @@ public class Server {
             // ARENA_01's L-corner (or whatever future arena's obstacle list) registered here, at
             // boot, permanently -- the same ObjectManager.register(obj, true) runtime-registration
             // path every prior pass's TEMP wall instrumentation used by hand, now config-driven.
+            // RESET-CYCLE CORRECTNESS PASS: construction now goes through
+            // ArenaDefinition.buildObstacleObject() (single source of truth shared with the new
+            // deregisterObstacles()/registerObstacles() teardown primitives), not an inline copy --
+            // this loop's own shape, order, and per-obstacle log line are otherwise unchanged.
             for (ArenaDefinition.ObstacleSpec obstacle : arena.obstacles) {
-                GameObject object = new GameObject(obstacle.objectId, obstacle.location, obstacle.type,
-                        obstacle.direction, null);
+                GameObject object = ArenaDefinition.buildObstacleObject(obstacle);
                 ObjectManager.register(object, true);
                 logger.info("[Server] registered arena obstacle: id=" + obstacle.objectId
                         + " loc=" + obstacle.location + " dir=" + obstacle.direction);

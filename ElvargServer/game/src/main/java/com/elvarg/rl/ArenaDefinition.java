@@ -1,5 +1,7 @@
 package com.elvarg.rl;
 
+import com.elvarg.game.entity.impl.object.GameObject;
+import com.elvarg.game.entity.impl.object.ObjectManager;
 import com.elvarg.game.model.Location;
 
 import java.util.Collections;
@@ -173,5 +175,63 @@ public final class ArenaDefinition {
             default -> throw new IllegalArgumentException(
                     "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, or ARENA_03)");
         };
+    }
+
+    /**
+     * RESET-CYCLE CORRECTNESS PASS -- single source of truth for turning an {@link ObstacleSpec}
+     * into the {@link GameObject} identity {@code ObjectManager.register()}/{@code deregister()}
+     * operate on. Extracted so the boot path (Server.java) and the new teardown/re-register
+     * methods below build the IDENTICAL object -- not merely similar-looking duplicated
+     * construction -- since {@code ObjectManager.deregister()}'s
+     * {@code World.getObjects().removeIf(o -> o.equals(object))} depends on
+     * {@link GameObject#equals} matching (value-based: location/id/face/type/privateArea,
+     * confirmed from source, not assumed). A future field added to {@code ObstacleSpec} (e.g. for
+     * varied map-factory geometry) only needs updating HERE to stay correct on both the
+     * registration and teardown sides -- the failure mode a duplicated-construction design would
+     * silently reintroduce.
+     */
+    public static GameObject buildObstacleObject(ObstacleSpec obstacle) {
+        return new GameObject(obstacle.objectId, obstacle.location, obstacle.type, obstacle.direction, null);
+    }
+
+    /**
+     * The first production teardown primitive for arena obstacles. Server.java's boot loop
+     * registers obstacles once, at boot, and nothing has ever torn them down (DEREGISTRATION /
+     * RESET-CYCLE AUDIT's own finding: no caller anywhere deregisters a type 0-3 object). This is
+     * the primitive thread 2's reset-time arena switch will call -- NOT wired into
+     * MinimalEnvironmentBot.performReset() or any live reset path by this pass, per its own scope
+     * (that integration needs the v5 protocol bump to carry per-episode arena selection).
+     * {@code playerUpdate=true}, matching every real obstacle registration call -- {@code
+     * ObjectManager.deregister()}'s own Javadoc (this pass's Part 2 addition) documents that the
+     * flag doesn't currently gate anything on this path anyway, so {@code true} costs nothing and
+     * stays consistent with the registration side.
+     * <p>
+     * Deregistering already reaches clipping removal with no extra call needed: {@code deregister()}
+     * -&gt; {@code perform(DESPAWN)} (unconditional) -&gt; {@code MapObjects.remove()} -&gt;
+     * {@code RegionManager.removeObjectClipping()} (traced this pass, current source -- the earlier
+     * assumption that teardown might need to call clipping removal explicitly does not hold).
+     */
+    public static void deregisterObstacles(ArenaDefinition arena) {
+        for (ObstacleSpec obstacle : arena.obstacles) {
+            ObjectManager.deregister(buildObstacleObject(obstacle), true);
+        }
+    }
+
+    /**
+     * Companion to {@link #deregisterObstacles} -- registers the same obstacle set, for a
+     * register-&gt;teardown-&gt;re-register cycle (this pass's own certification) and for thread 2's
+     * future per-episode arena switch. NOT called by Server.java's own boot loop, deliberately: that
+     * loop logs a message per obstacle (`logger.info(...)`), which this method does not do, so
+     * routing boot through it would silently drop that log line -- a real behavior change the
+     * behavior-preservation constraint rules out. Server.java instead calls
+     * {@link #buildObstacleObject} directly for construction only, keeping its own loop/logging
+     * structure fully intact -- see the call site's own comment. Both this method and the boot loop
+     * therefore build via the exact same {@link #buildObstacleObject}, symmetric by construction,
+     * while boot's loop shape and its log line are untouched.
+     */
+    public static void registerObstacles(ArenaDefinition arena) {
+        for (ObstacleSpec obstacle : arena.obstacles) {
+            ObjectManager.register(buildObstacleObject(obstacle), true);
+        }
     }
 }

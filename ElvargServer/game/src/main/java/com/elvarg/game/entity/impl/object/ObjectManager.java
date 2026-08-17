@@ -35,6 +35,14 @@ public class ObjectManager {
      *
      * @param object       The object being registered.
      * @param playerUpdate Should the send object packet be sent to nearby players?
+     *                     FOOTGUN (DEREGISTRATION / RESET-CYCLE AUDIT, RESET-CYCLE CORRECTNESS
+     *                     PASS): {@code false} does NOT only suppress the client packet -- it skips
+     *                     {@code perform()} entirely, which ALSO skips {@code MapObjects.add()} and
+     *                     therefore {@code RegionManager.addObjectClipping()}. An object registered
+     *                     with {@code playerUpdate=false} is invisible to the client AND has no
+     *                     clipping/collision effect -- the two are coupled, not independent. Every
+     *                     arena-obstacle caller (Server.java's boot loop, ArenaDefinition's own
+     *                     teardown/re-register helpers) passes {@code true} for exactly this reason.
      */
     public static void register(GameObject object, boolean playerUpdate) {
         // Check for matching object on this tile.
@@ -60,6 +68,15 @@ public class ObjectManager {
      *
      * @param object       The object to deregister.
      * @param playerUpdate Should the object removal packet be sent to nearby players?
+     *                     FOOTGUN, ASYMMETRIC WITH register() (DEREGISTRATION / RESET-CYCLE AUDIT,
+     *                     RESET-CYCLE CORRECTNESS PASS): this parameter does NOT gate anything here
+     *                     -- {@code perform()} (and therefore {@code MapObjects.remove()} /
+     *                     {@code RegionManager.removeObjectClipping()}) always runs, unconditionally,
+     *                     regardless of what's passed. Do not rely on {@code playerUpdate=false} to
+     *                     skip clipping removal on this path the way it does on {@code register()}'s
+     *                     -- it never has. Documented, not changed: no caller depends on this being
+     *                     gated, and coupling it to match register() is a separate, unneeded refactor
+     *                     (RESET-CYCLE CORRECTNESS PASS ruling).
      */
     public static void deregister(GameObject object, boolean playerUpdate) {
         World.getObjects().removeIf(o -> o.equals(object));
