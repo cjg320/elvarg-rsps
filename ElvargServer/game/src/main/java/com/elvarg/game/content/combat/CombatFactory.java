@@ -698,6 +698,21 @@ public class CombatFactory {
 			}
 		}
 
+		// FLINCH IMPLEMENTATION pass (PROJECT_STATE.md): a landed hitsplat starts the NPC's own
+		// retaliation delay at floor(attack_speed/2) ticks (OSRS Wiki, Flinching -- "starts a
+		// retaliation delay which equals half of its attack speed (rounded down)"). SET on
+		// TimerKey.COMBAT_ATTACK, not an extend -- overwrites whatever cooldown state the target had.
+		// attackSpeed is read off the TARGET's own CombatMethod/base stat, never the attacker's.
+		// NPC-only (target.isNpc()): player-side flinching is a separate, out-of-scope PvP
+		// auto-retaliate extension (Audit 1(a)) -- ungated, this would also overwrite the bot's own
+		// COMBAT_ATTACK on every NPC hit, which can SHORTEN a longer remaining cooldown (unsafe-
+		// direction free-DPS artifact), unlike this mechanic's intended NPC-delay effect.
+		if (qHit.getTotalDamage() > 0) {
+			if (target.isNpc()) {
+				target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
+			}
+		}
+
 		// Auto retaliate if needed
 		handleRetaliation(attacker, target);
 
