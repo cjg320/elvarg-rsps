@@ -59,8 +59,14 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * pass, PROJECT_STATE.md section 13). Replaces the former hardcoded ARENA_BOT_LOCATION/
 	 * ARENA_NPC_LOCATION constants (PROJECT_STATE.md section 8.1) -- see {@link ArenaDefinition}'s
 	 * own doc for the ARENA_ID selection mechanism and both definitions' full field values.
+	 * <p>
+	 * THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): {@code final} DROPPED --
+	 * mirrors {@link #target}'s own existing {@code volatile} mutability. Rebound exactly once per
+	 * trainer-controlled arena switch, and only as the LAST step of that sequence (see
+	 * {@code performReset()}'s own switch-sequence comment for the ordering invariant this
+	 * load-bearingly depends on).
 	 */
-	private final ArenaDefinition arena;
+	private volatile ArenaDefinition arena;
 
 	/**
 	 * Index of "attack" within agent/actions.py's COMBAT_ACTIONS list on the Python side:
@@ -141,8 +147,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * confront the change instead of silently inheriting new behavior. Bump this and the Python
 	 * side's EXPECTED_PROTOCOL_VERSION together, deliberately, whenever the wire CONTRACT changes -
 	 * that has always meant more than byte-format, per this precedent.
+	 * <p>
+	 * THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): bumped 4 -> 5 -- the
+	 * FIELD_ORDER respace (29 -> 155 fields, agent/observation.py) is a wire-format fork by this
+	 * same discipline's own standard, forcing any stale v4 client to fail loud on the mismatch
+	 * rather than silently receive a payload shaped for a space it never trained against.
 	 */
-	private static final int PROTOCOL_VERSION = 4;
+	private static final int PROTOCOL_VERSION = 5;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -169,6 +180,40 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 */
 	private volatile boolean lastStepAttackOffCooldown;
 	private volatile boolean lastStepChoseAttack;
+
+	/**
+	 * THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): the flinch sense's raw
+	 * counter, {@code ticks_since_bot_landed_hit} on the wire -- Python applies
+	 * {@code clip01(t / 10.0)} (agent/elvarg_socket_env.py's own {@code _SENSE_SATURATION_TICKS}).
+	 * {@code SENSE_SATURATION_TICKS} is a NEW constant here, not a reuse of
+	 * {@code Combat.UNRECIPROCATED_ATTACK_SKIP_TICKS} -- that field is {@code private} to
+	 * {@code Combat} (a different package, a semantically different give-up-skip concept) and
+	 * making it accessible would be a SECOND stock-file touch beyond the one hunk this pass already
+	 * scoped and signed off (CombatFactory.java, Part 3.1). Same VALUE (10) by deliberate design-
+	 * record intent, not the same symbol.
+	 */
+	private static final int SENSE_SATURATION_TICKS = 10;
+
+	/**
+	 * Same H2-INSTRUMENT-style monitoring-field pattern as {@link #lastStepAttackOffCooldown} above
+	 * -- initializes SATURATED ({@link #SENSE_SATURATION_TICKS}), never 0: a fresh episode reading
+	 * 0 would falsely signal "just landed a hit" it never threw. Consumed/incremented once per tick
+	 * in {@code onPacketsProcessed()}, re-saturated on every reset -- see that method's own comment
+	 * for the exact ordering (the intra-tick increment-after-reset race this design avoids).
+	 */
+	private volatile int ticksSinceBotLandedHit = SENSE_SATURATION_TICKS;
+
+	/**
+	 * Pending-reset FLAG, set by {@link #notifyLandedHit()} (called from
+	 * {@code CombatFactory.executeHit()}'s THREAD 2a stock hook, Part 3.1), consumed once per tick
+	 * in {@code onPacketsProcessed()}. A flag, not a direct zero of {@link #ticksSinceBotLandedHit}
+	 * -- order-independent regardless of exactly when in the tick the stock hook fires relative to
+	 * this bot's own per-tick processing (NPCs process before players, so the bot's own landed hit
+	 * resolves via the NPC's next {@code Combat.process()} drain, a different point in the tick than
+	 * this bot's own {@code onPacketsProcessed()} -- see the design record for the full trace of why
+	 * a direct reset would race).
+	 */
+	private volatile boolean landedHitPendingReset = false;
 
 	/**
 	 * No-op interactions, ported from the naton1-reference's NoOpCombatInteraction /
@@ -260,6 +305,15 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	}
 
 	/**
+	 * THREAD 2a RESPACE: called from {@code CombatFactory.executeHit()}'s stock hook (Part 3.1)
+	 * when {@code attacker == getInstance()} lands a hit. Sets the pending flag only -- see
+	 * {@link #landedHitPendingReset}'s own doc for why this isn't a direct counter zero.
+	 */
+	public void notifyLandedHit() {
+		this.landedHitPendingReset = true;
+	}
+
+	/**
 	 * STEP 2 (tick-level cross-validation, PROJECT_STATE.md section 13's BONUS-STATE AUDIT
 	 * follow-up): the shared join key other packages (the combat-roll diagnostic prints) use to tag
 	 * a roll with "which flush/observation row it belongs to," so the Python side can align a
@@ -309,14 +363,35 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		final String action = parseAction(step.message());
 		String resetErrorPayload = null;
 
+		// THREAD 2a RESPACE: consume/increment ONCE PER TICK, unconditionally, BEFORE the
+		// reset/step branch dispatch below - runs regardless of which branch fires this tick (the
+		// reset branch immediately below unconditionally re-saturates afterward, overriding
+		// whatever this computed - see landedHitPendingReset's own doc for why the flag-consume
+		// shape, not a direct reset from the stock hook, is what makes this order-independent).
+		if (landedHitPendingReset) {
+			ticksSinceBotLandedHit = 0;
+			landedHitPendingReset = false;
+		} else {
+			ticksSinceBotLandedHit = Math.min(ticksSinceBotLandedHit + 1, SENSE_SATURATION_TICKS);
+		}
+
 		if ("reset".equals(action)) {
 			// Runs entirely on the tick thread, same as the attack below - see performReset()'s
-			// own doc for the full reset design (PROJECT_STATE.md section 13).
-			resetErrorPayload = performReset();
+			// own doc for the full reset design (PROJECT_STATE.md section 13). THREAD 2a RESPACE:
+			// now takes the raw message so it can parse its own optional arena_id -- same
+			// independent-re-parse style every other parse method here already uses.
+			resetErrorPayload = performReset(step.message());
 			// H2-INSTRUMENT: no combat decode happens on a reset tick - clear the snapshot fields so
 			// a reset-boundary observation never leaks the PRIOR episode's last-step values.
 			lastStepAttackOffCooldown = false;
 			lastStepChoseAttack = false;
+			// THREAD 2a RESPACE: episode boundary re-saturates, unconditionally overriding whatever
+			// the uniform consume/increment above just computed - a fresh episode must never read a
+			// low/zero value it didn't earn (landedHitPendingReset cleared too, so a pending flag
+			// from the tick just before a reset can't leak a stale "just landed" read into the next
+			// episode either).
+			ticksSinceBotLandedHit = SENSE_SATURATION_TICKS;
+			landedHitPendingReset = false;
 		} else if ("step".equals(action)) {
 			// COMBAT ACTION INDEX parsed EARLY, before movement - RUN/WALK ACTION INCREMENT pass
 			// (PROJECT_STATE.md section 13). Needed so toggle_run (if requested) can flip
@@ -472,7 +547,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * 8.1: an uncaught throw here would be caught by World.java's per-player GameSyncTask and call
 	 * requestLogout() on this bot).
 	 */
-	private String performReset() {
+	private String performReset(String message) {
 		try {
 			if (target == null) {
 				// Let buildObservationPayload()'s own null-check produce the error - same
@@ -488,6 +563,70 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// hard error (target==null, bad NPC data). Do not drop it.
 				logger.warning("[MinimalEnv] reset requested while bot is dying - transient, retryable");
 				return "{\"error\":\"bot is currently dying, retry reset\",\"retryable\":true}";
+			}
+
+			// THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): trainer-
+			// controlled arena switch. Lands here -- after both dying-state guards (the bot's own
+			// above; the NPC's own mid-death check is duplicated below, specifically for the
+			// switch, since the existing one further down this method exists for a DIFFERENT
+			// reason and fires too late) -- and before every arena-dependent site below
+			// (this.moveTo(arena.botSpawn), target.moveTo(arena.npcSpawn), the NPC-INSTANCE-LOSS
+			// backstop's own arena.npcSpawn read).
+			String requestedArenaId = parseArenaId(message);
+			if (requestedArenaId != null) {
+				ArenaDefinition requestedArena;
+				try {
+					requestedArena = ArenaDefinition.byId(requestedArenaId);
+				} catch (IllegalArgumentException e) {
+					// FAIL LOUD: never a silent ARENA_00 fallback -- silently training on the wrong
+					// arena is a corrupted experiment, worse than a crash. Same resetErrorPayload
+					// channel as the dying-state errors, but NOT retryable -- this is a permanent
+					// request error (a typo'd/unknown id), not a transient race, so the Python
+					// side's own reset() raises immediately rather than retrying it away.
+					logger.warning("[MinimalEnv] reset requested an unknown arena_id=" + requestedArenaId
+							+ ": " + e.getMessage());
+					return "{\"error\":\"unknown arena_id: " + requestedArenaId + "\"}";
+				}
+				if (requestedArena != this.arena) {
+					// MID-DEATH: the switch needs the NPC's own isDying() check EARLY, before
+					// despawning it -- unlike a same-arena reset (which reuses target, per the
+					// NPC-CHURN ROOT FIX precedent), a switch replaces the NPC outright, so the
+					// existing later check (which exists to protect that reuse from racing its own
+					// async death task) doesn't cover this path. Same existing message/contract,
+					// deliberately duplicated, not a new failure mode.
+					if (target.isDying()) {
+						logger.warning("[MinimalEnv] reset requested an arena switch while NPC is "
+								+ "dying - transient, retryable");
+						return "{\"error\":\"npc is currently dying, retry reset\",\"retryable\":true}";
+					}
+					// ORDERING INVARIANT, load-bearing: capture old -> deregister old (explicit
+					// arg, NOT this.arena -- correctness comes from the call sequence, not field
+					// state) -> despawn old NPC -> register new (explicit arg) -> create+setTarget
+					// new NPC -> rebind this.arena LAST. Rebinding early would make
+					// deregisterObstacles tear down the NEW arena's not-yet-registered obstacles
+					// and leak the old ones.
+					ArenaDefinition oldArena = this.arena;
+					ArenaDefinition newArena = requestedArena;
+					ArenaDefinition.deregisterObstacles(oldArena);
+					// Ghost-sweep precedent (see the backstop further below): unconditional queued
+					// removal, not a reuse -- a switch replaces the NPC outright, unlike the
+					// NPC-CHURN ROOT FIX's own "hold one instance across the run" convention for a
+					// same-arena reset.
+					World.getRemoveNPCQueue().add(this.target);
+					ArenaDefinition.registerObstacles(newArena);
+					NPC newTarget = NPC.create(newArena.npcId, newArena.npcSpawn);
+					World.getAddNPCQueue().add(newTarget);
+					setTarget(newTarget);
+					// Same NPC.create() radius gap Server.java's own boot sequence already works
+					// around (NPC.create() bypasses NpcSpawnDefinitionLoader, so
+					// NPCMovementCoordinator.radius stays at Java's default 0 -- a degenerate leash
+					// -- unless set explicitly): mirrored here, not skipped.
+					newTarget.getMovementCoordinator().setRadius(newArena.npcCoordinatorRadius);
+					this.arena = newArena;
+					logger.info("[MinimalEnv] reset: arena switched " + oldArena.id + " -> " + newArena.id);
+				}
+				// requestedArena == this.arena: NO-OP by design -- zero churn, falls through to the
+				// existing reset logic below exactly as if arena_id had been absent.
 			}
 
 			this.getCombat().reset();
@@ -933,6 +1072,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// see that method's own comment) would show as 2+ here, visible in every per-step log
 				// going forward, same monitoring-only convention as max_melee_hit.
 				+ ",\"npc_instance_count\":" + countNpcInstances(target.getId())
+				// THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): the flinch
+				// sense's RAW counter -- emitted unnormalized; agent/elvarg_socket_env.py applies
+				// clip01(t / 10.0) Python-side (this class's own SENSE_SATURATION_TICKS, matched by
+				// value not by shared symbol -- see that field's own doc for why). Unconditional,
+				// no opt-in flag, unlike wire_geometry/run_energy -- see PROTOCOL_VERSION's own
+				// THREAD 2a doc for why this pass has no frozen-v4-caller surface left to protect.
+				+ ",\"ticks_since_bot_landed_hit\":" + ticksSinceBotLandedHit
 				+ "}";
 	}
 
@@ -1004,6 +1150,29 @@ public class MinimalEnvironmentBot extends PlayerBot {
 		} catch (Exception e) {
 			logger.warning("[MinimalEnv] failed to parse move action index, defaulting to idle: " + e);
 			return 0;
+		}
+	}
+
+	/**
+	 * THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): parses the OPTIONAL
+	 * {@code arena_id} field from a reset message -- the trainer-controlled arena switch. Same
+	 * independent-re-parse style as {@link #parseAction}/{@link #parseCombatActionIndex}/
+	 * {@link #parseMoveActionIndex} above -- its own method, its own {@code JsonParser.parseString}
+	 * call, no shared parsed object. Returns {@code null} if the key is absent (the no-switch,
+	 * byte-identical-to-pre-2a default) or on any parse failure -- never silently misinterpret a
+	 * malformed request as a switch to an unintended arena. A non-null return is NOT yet validated
+	 * against the known arena set -- that's {@link ArenaDefinition#byId}'s own job, fail-loud.
+	 */
+	private String parseArenaId(String message) {
+		try {
+			final JsonObject json = JsonParser.parseString(message).getAsJsonObject();
+			if (!json.has("arena_id")) {
+				return null;
+			}
+			return json.get("arena_id").getAsString();
+		} catch (Exception e) {
+			logger.warning("[MinimalEnv] failed to parse arena_id, treating as absent (no switch): " + e);
+			return null;
 		}
 	}
 

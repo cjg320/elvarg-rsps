@@ -178,6 +178,31 @@ public final class ArenaDefinition {
     }
 
     /**
+     * THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): resolves an
+     * ArenaDefinition by id string for the trainer-controlled per-episode arena switch. Throws on
+     * ANY unrecognized value -- mirrors {@link #select}'s own actual throw-on-unrecognized
+     * behavior (verified against that method's CODE above, not its doc comment, which the design
+     * record already flagged as imprecise: only null/blank falls back to ARENA_00 there; a
+     * non-blank unknown value throws, same as here). Fail-loud, deliberately: a bad {@code
+     * arena_id} from the trainer must surface as a loud error, never a silent ARENA_00 fallback --
+     * silently training on the wrong arena is a corrupted experiment, worse than a crash. Does NOT
+     * handle "absent" -- an absent {@code arena_id} on the wire means "no switch requested" and
+     * this method is never called at all for that case (see MinimalEnvironmentBot's own switch
+     * sequence). {@link #select} (boot-time, env-var-driven) is completely untouched by this
+     * method's existence -- a separate resolver, not a refactor of the boot path.
+     */
+    public static ArenaDefinition byId(String id) {
+        return switch (id) {
+            case "ARENA_00" -> ARENA_00;
+            case "ARENA_01" -> ARENA_01;
+            case "ARENA_02" -> ARENA_02;
+            case "ARENA_03" -> ARENA_03;
+            default -> throw new IllegalArgumentException(
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, or ARENA_03)");
+        };
+    }
+
+    /**
      * RESET-CYCLE CORRECTNESS PASS -- single source of truth for turning an {@link ObstacleSpec}
      * into the {@link GameObject} identity {@code ObjectManager.register()}/{@code deregister()}
      * operate on. Extracted so the boot path (Server.java) and the new teardown/re-register

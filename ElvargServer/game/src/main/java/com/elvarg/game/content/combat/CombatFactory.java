@@ -713,6 +713,25 @@ public class CombatFactory {
 			}
 		}
 
+		// THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): the flinch sense's
+		// (ticks_since_bot_landed_hit) landed-hit reset entry point -- the ATTACKER-side mirror of
+		// the flinch hook immediately above, which gates on the TARGET (target.isNpc()). This gate
+		// is deliberately different, not silently matched to the same predicate: the flinch hook
+		// needs "is the target our NPC" (an NPC-retaliation-delay mechanic); this hook needs "is the
+		// attacker specifically OUR bot" (attacker == getInstance(), not the weaker attacker.isPlayer()
+		// -- a stock human player landing a hit must never tick this bot's own sense). Sets a pending
+		// FLAG only, consumed once per tick in MinimalEnvironmentBot.onPacketsProcessed() before that
+		// tick's reset/step dispatch -- NOT a direct zero here, avoiding the same-tick increment-after-
+		// reset race the design record names. notifyLandedHit()/the flag field land in Part 3.2 of
+		// this pass, staged separately -- this hunk alone does not compile until that lands (by
+		// design, not an oversight: this diff is presented for the hook's own gate/placement
+		// sign-off first).
+		if (qHit.getTotalDamage() > 0) {
+			if (attacker == com.elvarg.rl.MinimalEnvironmentBot.getInstance()) {
+				com.elvarg.rl.MinimalEnvironmentBot.getInstance().notifyLandedHit();
+			}
+		}
+
 		// Auto retaliate if needed
 		handleRetaliation(attacker, target);
 
