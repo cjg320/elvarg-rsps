@@ -18,6 +18,7 @@ import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
 import com.elvarg.game.model.Item;
 import com.elvarg.game.model.Location;
 import com.elvarg.game.model.Skill;
+import com.elvarg.game.model.areas.impl.PrivateArea;
 import com.elvarg.game.model.container.impl.Equipment;
 import com.elvarg.game.model.equipment.BonusManager;
 import com.elvarg.game.task.TaskManager;
@@ -152,8 +153,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * FIELD_ORDER respace (29 -> 155 fields, agent/observation.py) is a wire-format fork by this
 	 * same discipline's own standard, forcing any stale v4 client to fail loud on the mismatch
 	 * rather than silently receive a payload shaped for a space it never trained against.
+	 * <p>
+	 * THREAD 2b CHARTER AMENDMENT: bumped 5 -> 6 -- the diagonal-crossing respace (155 -> 255
+	 * fields) is the same class of wire-format fork by the same standard: a stale v5 client must
+	 * fail loud rather than silently receive a payload shaped for a 255-wide space it never
+	 * trained against.
 	 */
-	private static final int PROTOCOL_VERSION = 5;
+	private static final int PROTOCOL_VERSION = 6;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -1079,7 +1085,107 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// no opt-in flag, unlike wire_geometry/run_energy -- see PROTOCOL_VERSION's own
 				// THREAD 2a doc for why this pass has no frozen-v4-caller surface left to protect.
 				+ ",\"ticks_since_bot_landed_hit\":" + ticksSinceBotLandedHit
+				// THREAD 2b (docs/ARENA_CURRICULUM_DESIGN.md ":624-693" region): the N=5 egocentric
+				// geometry patch, 125 fields, emitted UNCONDITIONALLY (no server-side flag -- see
+				// buildGeometryPatchFields()'s own doc for why) so the BFS ground-truth parity audit
+				// can certify against a live payload without the Python-side wire_geometry_patch flag.
+				+ buildGeometryPatchFields()
 				+ "}";
+	}
+
+	/**
+	 * THREAD 2b: the N=5 (radius 2) egocentric geometry patch -- 25 cells x 5 cardinal bits/cell
+	 * (1 occupiable + 4 cardinal edge-crossing bits), matching the 125 {@code geo_x{X}_y{Y}_*}
+	 * names committed to {@code FIELD_ORDER} by the THREAD 2a RESPACE (agent/observation.py). Cell
+	 * order MUST match that commit exactly: y outer (m2->p2), x inner (m2->p2), per-cell order
+	 * occupiable/cross_n/cross_s/cross_e/cross_w -- verified against the real FIELD_ORDER slice
+	 * this pass, not re-derived from memory.
+	 * <p>
+	 * Reads the SAME accessors the bot's own movement queue uses ({@code RegionManager.canMove()}'s
+	 * constituent checks -- this class's own {@code RegionManager.canMove(current, step1, size,
+	 * size, this.getPrivateArea())} call sites), not {@code CombatFactory.isMeleeReachable()}/
+	 * {@code meleeBlockedByWall()} (attack-reach, a different question with no diagonal branch at
+	 * all -- confirmed by source read, THREAD 2b Part 1.1). {@code occupiable} uses the
+	 * {@code PrivateArea}-aware {@code RegionManager.blocked(Location, PrivateArea)} overload, not
+	 * the bare 3-int overload -- a deliberate refinement over Part 1.1's own shorthand citation
+	 * (which named the bare overload): the four cross_* checks below are all PrivateArea-aware
+	 * (mirroring the bot's own {@code canMove()} call sites), so occupiable uses the matching
+	 * overload for the same reason -- "the same accessor... not a parallel path" cannot mean four
+	 * PrivateArea-aware checks and one that silently ignores private-area clipping.
+	 * <p>
+	 * CHARTER AMENDMENT (THREAD 2b, this pass): a SECOND 25-cell pass appends 100 diagonal-crossing
+	 * fields, {@code geo_x{X}_y{Y}_cross_{ne,nw,se,sw}}, at {@code FIELD_ORDER} indices 155-254 --
+	 * same y-outer/x-inner cell order, generated as a separate block after all 125 cardinal fields,
+	 * not interleaved per-cell. Triggered by the BFS parity audit's own pre-registered finding: at
+	 * live tile {@code (3085,3465)}, direction NE, both cardinal bits ({@code cross_n}/{@code
+	 * cross_e}) read clear but {@code RegionManager.canMove()} still refused the move -- a real,
+	 * live-exercised diagonal-corner-cut gap on the certified ARENA_01/ARENA_03 L-corner that a
+	 * cardinal-only encoding cannot represent (`scripts/geometry_patch_audit.py`, this thread).
+	 * Each diagonal field is the COMPOUND {@code canMove()} answer, not the raw per-tile diagonal
+	 * bit alone (THREAD 2b charter amendment A1 item 2's own ruling): a field named
+	 * {@code cross_ne} must equal real NE-crossing legality outright, not require a downstream
+	 * consumer to AND it with the cardinal bits itself -- exactly the class of silent mismatch this
+	 * amendment exists to close. Reuses each cell's already-computed {@code crossN}/{@code crossS}/
+	 * {@code crossE}/{@code crossW} booleans from the first loop -- one new accessor call per
+	 * diagonal ({@code blockedNorthEast}/{@code NorthWest}/{@code SouthEast}/{@code SouthWest},
+	 * public static, {@code RegionManager.java:652-666}), not four.
+	 */
+	private String buildGeometryPatchFields() {
+		final String[] AXIS_LABELS = { "m2", "m1", "0", "p1", "p2" };
+		StringBuilder sb = new StringBuilder();
+		final int botX = this.getLocation().getX();
+		final int botY = this.getLocation().getY();
+		final int height = this.getLocation().getZ();
+		final boolean[][] crossN = new boolean[5][5];
+		final boolean[][] crossS = new boolean[5][5];
+		final boolean[][] crossE = new boolean[5][5];
+		final boolean[][] crossW = new boolean[5][5];
+		for (int dyIndex = 0; dyIndex < 5; dyIndex++) {
+			final int dy = dyIndex - 2;
+			for (int dxIndex = 0; dxIndex < 5; dxIndex++) {
+				final int dx = dxIndex - 2;
+				final Location cell = new Location(botX + dx, botY + dy, height);
+				final boolean occupiable = !RegionManager.blocked(cell, this.getPrivateArea());
+				final boolean n = !RegionManager.blockedNorth(cell, this.getPrivateArea());
+				final boolean s = !RegionManager.blockedSouth(cell, this.getPrivateArea());
+				final boolean e = !RegionManager.blockedEast(cell, this.getPrivateArea());
+				final boolean w = !RegionManager.blockedWest(cell, this.getPrivateArea());
+				crossN[dyIndex][dxIndex] = n;
+				crossS[dyIndex][dxIndex] = s;
+				crossE[dyIndex][dxIndex] = e;
+				crossW[dyIndex][dxIndex] = w;
+				final String prefix = "geo_x" + AXIS_LABELS[dxIndex] + "_y" + AXIS_LABELS[dyIndex] + "_";
+				sb.append(",\"").append(prefix).append("occupiable\":").append(occupiable ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_n\":").append(n ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_s\":").append(s ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_e\":").append(e ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_w\":").append(w ? 1.0 : 0.0);
+			}
+		}
+		// CHARTER AMENDMENT: second 25-cell pass, diagonal-crossing fields, appended after all 125
+		// cardinal fields above -- see this method's own doc for the compound-semantics ruling.
+		for (int dyIndex = 0; dyIndex < 5; dyIndex++) {
+			final int dy = dyIndex - 2;
+			for (int dxIndex = 0; dxIndex < 5; dxIndex++) {
+				final int dx = dxIndex - 2;
+				final Location cell = new Location(botX + dx, botY + dy, height);
+				final PrivateArea pa = this.getPrivateArea();
+				final boolean crossNe = crossN[dyIndex][dxIndex] && crossE[dyIndex][dxIndex]
+						&& !RegionManager.blockedNorthEast(cell, pa);
+				final boolean crossNw = crossN[dyIndex][dxIndex] && crossW[dyIndex][dxIndex]
+						&& !RegionManager.blockedNorthWest(cell, pa);
+				final boolean crossSe = crossS[dyIndex][dxIndex] && crossE[dyIndex][dxIndex]
+						&& !RegionManager.blockedSouthEast(cell, pa);
+				final boolean crossSw = crossS[dyIndex][dxIndex] && crossW[dyIndex][dxIndex]
+						&& !RegionManager.blockedSouthWest(cell, pa);
+				final String prefix = "geo_x" + AXIS_LABELS[dxIndex] + "_y" + AXIS_LABELS[dyIndex] + "_";
+				sb.append(",\"").append(prefix).append("cross_ne\":").append(crossNe ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_nw\":").append(crossNw ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_se\":").append(crossSe ? 1.0 : 0.0);
+				sb.append(",\"").append(prefix).append("cross_sw\":").append(crossSw ? 1.0 : 0.0);
+			}
+		}
+		return sb.toString();
 	}
 
 	/** Counts live World NPCs sharing the given id -- see the npc_instance_count tripwire's own doc. */
