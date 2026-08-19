@@ -161,6 +161,46 @@ public final class ArenaDefinition {
                     new ObstacleSpec(979, new Location(3086, 3465, 0), 0, 2)   // east-blocking
             ));
 
+    // MAP FACTORY ROUND ONE INCREMENT 1 -- Part C/D: generates a full rectangular ObstacleSpec
+    // perimeter (type-0 walls, one object per edge tile) from a donor site's swept footprint
+    // bounds, instead of a hand-placed L-corner. Corners naturally receive TWO objects (one per
+    // adjoining edge -- same convention as ARENA_01/03's own L-corner) since each edge loop covers
+    // its own full side independently; no special-cased corner logic needed. Direction values
+    // follow addClippingForVariableObject()'s type-0 mapping, confirmed from source
+    // (RegionManager.java): dir=0 west-blocking, dir=1 north-blocking, dir=2 east-blocking,
+    // dir=3 south-blocking.
+    private static List<ObstacleSpec> buildRectangularBoundary(int minX, int minY, int maxX, int maxY, int wallObjectId) {
+        List<ObstacleSpec> list = new java.util.ArrayList<>();
+        for (int y = minY; y <= maxY; y++) {
+            list.add(new ObstacleSpec(wallObjectId, new Location(minX, y, 0), 0, 0)); // west edge
+            list.add(new ObstacleSpec(wallObjectId, new Location(maxX, y, 0), 0, 2)); // east edge
+        }
+        for (int x = minX; x <= maxX; x++) {
+            list.add(new ObstacleSpec(wallObjectId, new Location(x, maxY, 0), 0, 1)); // north edge
+            list.add(new ObstacleSpec(wallObjectId, new Location(x, minY, 0), 0, 3)); // south edge
+        }
+        return Collections.unmodifiableList(list);
+    }
+
+    // MAP FACTORY ROUND ONE INCREMENT 1 -- Part B/C/D: the first donor-region proof map (ABSENT
+    // type -- ground + boundary only, zero tactic geometry, per Part 7's own framing: "the
+    // cheapest full-pipeline exercise"). Site found via a footprint-sweep+BFS chase directed at a
+    // user-supplied coordinate (docs/PROJECT_STATE.md MAP FACTORY subsection, ROUND ONE INCREMENT
+    // 1 ADDENDUM): 35x35 reachable square at world (3388,2953)-(3422,2987), region 13614,
+    // isolation 553 tiles to the nearest NPC spawn -- clears the ~32x32 target and beats every one
+    // of the four originally-ranked candidates (best was 13x13). Full rectangular boundary (140
+    // wall objects, object id 979 -- the same wall type ARENA_01/03 already use) rather than a
+    // single L-corner, since this map's whole purpose is sealing a donor footprint, not shaping
+    // one cover interaction. Occupant: Chaos druid warrior (2890), the measured-parity default
+    // (HARDER-NPC FIDELITY AUDIT pass) -- an ABSENT map teaches "just fight," Part 3.5's own logic.
+    public static final ArenaDefinition ARENA_04 = new ArenaDefinition(
+            "ARENA_04",
+            new Location(3405, 2970),
+            2890,
+            new Location(3406, 2970),
+            6,
+            buildRectangularBoundary(3388, 2953, 3422, 2987, 979));
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -172,8 +212,9 @@ public final class ArenaDefinition {
             case "ARENA_01" -> ARENA_01;
             case "ARENA_02" -> ARENA_02;
             case "ARENA_03" -> ARENA_03;
+            case "ARENA_04" -> ARENA_04;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, or ARENA_03)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, or ARENA_04)");
         };
     }
 
@@ -197,8 +238,9 @@ public final class ArenaDefinition {
             case "ARENA_01" -> ARENA_01;
             case "ARENA_02" -> ARENA_02;
             case "ARENA_03" -> ARENA_03;
+            case "ARENA_04" -> ARENA_04;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, or ARENA_03)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, or ARENA_04)");
         };
     }
 
