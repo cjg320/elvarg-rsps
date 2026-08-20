@@ -158,8 +158,15 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * fields) is the same class of wire-format fork by the same standard: a stale v5 client must
 	 * fail loud rather than silently receive a payload shaped for a 255-wide space it never
 	 * trained against.
+	 * <p>
+	 * FLINCH-RECOGNITION-CUE WIRE (docs/PROJECT_STATE.md, MAP FACTORY ERA, B.5-gated): bumped
+	 * 6 -> 7 -- NOT a respace (FIELD_ORDER stays 255-wide; this fills already-reserved
+	 * enemy_attack_imminent_* slots, never adds new ones), but the new `enemy_swing_observed`
+	 * payload key is a semantic wire change by the same standard as arena_id's own v2->v3 bump:
+	 * a stale v6 client silently lacks the signal wire_enemy_cadence's derivation needs, so this
+	 * forces it to confront the change explicitly rather than silently deriving from nothing.
 	 */
-	private static final int PROTOCOL_VERSION = 6;
+	private static final int PROTOCOL_VERSION = 7;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -1045,6 +1052,17 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				+ ",\"is_running\":" + this.isRunning()
 				+ ",\"attack_off_cooldown\":" + lastStepAttackOffCooldown
 				+ ",\"attack_chosen\":" + lastStepChoseAttack
+				// FLINCH-RECOGNITION-CUE WIRE (B.5 gate, docs/PROJECT_STATE.md, MAP FACTORY ERA):
+				// DERIVATION-INPUT key, NOT trainer telemetry (correcting the label the earlier
+				// npc_x/npc_y-style fields above use) -- unlike those monitoring-only fields, this
+				// one feeds Python's wire_enemy_cadence derivation of the reserved
+				// enemy_attack_imminent_* triplet. Still never occupies a FIELD_ORDER slot itself
+				// and is never routed raw into the observation vector (enforced Python-side by an
+				// explicit assertion, not just by omission) -- the derivation consumes it, the
+				// policy never sees it directly. Read via Combat.attackExecutedThisTick() -- see
+				// that method's own doc for the reset-then-consume/pending-flag design and why the
+				// out-of-order NpcAggression engage path needed its own handling.
+				+ ",\"enemy_swing_observed\":" + target.getCombat().attackExecutedThisTick()
 				// GEOMETRY-FIELD WIRING PASS: was isTargetInMeleeRange(), a hand-maintained replica of
 				// canReach()'s geometry that had already drifted once (missed the wall-clipping fix).
 				// Now the same CombatFactory.isMeleeReachable() call enemy_in_my_attack_range above

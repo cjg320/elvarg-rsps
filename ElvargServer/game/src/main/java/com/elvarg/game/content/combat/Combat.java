@@ -48,6 +48,36 @@ public class Combat {
     private CombatSpell autoCastSpell;
     private CombatSpell previousCast;
 
+    // FLINCH-RECOGNITION-CUE WIRE (docs/PROJECT_STATE.md, MAP FACTORY ERA, B.1/B.5-gated): the raw
+    // deployment-observable "did this character's attack execute this tick" event -- a real player
+    // sees the swing animation/hitsplat (0-damage splashes included), never the internal cooldown
+    // this flag is derived from resetting/registering. True only for the exact tick the CAN_ATTACK
+    // branch below fires (accuracy/damage resolve later, asynchronously, via the hit queue -- this
+    // flag fires on the ATTEMPT, matching "the swing triggers, not the damage").
+    private boolean attackExecutedThisTick;
+
+    // The out-of-order-path fix (B.5 gate amendment 1, bounded read confirmed real): NpcAggression's
+    // sole `attack()` call site (NpcAggression.java, guarded by an `inCombat(npc)` check so it fires
+    // EXACTLY ONCE, on initial engagement, never mid-fight) runs from Player.process() AFTER that
+    // same tick's PlayerPacketsProcessedEvent dispatch -- i.e. after MinimalEnvironmentBot's payload
+    // has already built for this tick (Player.java:397 dispatches before :407's NpcAggression.process()
+    // call). Setting attackExecutedThisTick directly from that path would be invisible this tick and
+    // then silently wiped by next tick's own reset -- every episode's first engage-swing lost, not a
+    // rare edge (arenas re-engage per episode). Fixed narrowly: the out-of-order path sets THIS
+    // pending flag instead; process()'s own per-tick entry point (which always runs before that
+    // tick's own payload build, per the NPC-before-player World.process() ordering) consumes it into
+    // attackExecutedThisTick one tick "late" rather than losing it. The normal in-order path
+    // (process() -> performNewAttack()) is completely unaffected -- sets attackExecutedThisTick
+    // directly, same tick, as designed.
+    private boolean pendingLateEngageSwing;
+    private boolean inOutOfOrderEngageCall;
+
+    /** Trainer-privileged, deployment-honest read of {@link #attackExecutedThisTick} -- see that
+     * field's own doc. Consumed by MinimalEnvironmentBot's payload builder only. */
+    public boolean attackExecutedThisTick() {
+        return attackExecutedThisTick;
+    }
+
     public Combat(Mobile character) {
         this.character = character;
         this.hitQueue = new HitQueue();
@@ -70,14 +100,29 @@ public class Combat {
         // Start facing the target
         character.setMobileInteraction(target);
 
+        // FLINCH-RECOGNITION-CUE WIRE: this is the out-of-order path (see attackExecutedThisTick's
+        // own doc) -- mark it so the CAN_ATTACK branch below routes to the pending flag instead of
+        // the main one.
+        inOutOfOrderEngageCall = true;
         // Perform the first attack now (in same tick)
         performNewAttack(false);
+        inOutOfOrderEngageCall = false;
     }
 
     /**
      * Processes combat.
      */
     public void process() {
+        // FLINCH-RECOGNITION-CUE WIRE: reset-then-consume, unconditionally, before either of this
+        // method's own return paths below -- this IS the per-tick entry point (called exactly once
+        // per tick per entity, confirmed by the existing comment just below), and it runs during
+        // NPC-before-player World.process() ordering, i.e. always before this tick's own payload
+        // build. Consumes any pending swing from the out-of-order attack() path (one tick late,
+        // not lost); a genuine same-tick swing from this method's own performNewAttack() call below
+        // (if any) overwrites this with true further down, same tick, same as before this change.
+        attackExecutedThisTick = pendingLateEngageSwing;
+        pendingLateEngageSwing = false;
+
         // Process the hit queue
         hitQueue.process(character);
 
@@ -151,6 +196,15 @@ public class Combat {
                 PendingHit[] hits = method.hits(character, target);
                 if (hits == null)
                     return;
+                // FLINCH-RECOGNITION-CUE WIRE: the attack attempt just executed (accuracy/damage
+                // resolve later, async, via the hit queue below -- this is the "swing triggers, not
+                // the damage" observable). Route to the pending flag if this call originated from
+                // the out-of-order attack() path (see that field's own doc), the main flag otherwise.
+                if (inOutOfOrderEngageCall) {
+                    pendingLateEngageSwing = true;
+                } else {
+                    attackExecutedThisTick = true;
+                }
                 for (PendingHit hit : hits) {
                     CombatFactory.addPendingHit(hit);
                 }
