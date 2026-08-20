@@ -201,6 +201,26 @@ public final class ArenaDefinition {
             6,
             buildRectangularBoundary(3388, 2953, 3422, 2987, 979));
 
+    // MOUNTAIN TROLL ADDITION + FLINCH ARENA + FLINCH CERTIFICATION pass -- the flinch-family
+    // PRESENT map, ARENA_05. Site (II.1): reuses ARENA_04's own swept donor footprint verbatim
+    // (same 35x35 site, same 140-object rectangular boundary, same spawn pair) -- flinch is
+    // opponent-choice, not geometry (Part 7.2), so no new sweep is needed; the fixture-status
+    // caveat (environmental suitability unassessed, docs/PROJECT_STATE.md's own A.2 record) rides
+    // into this arena's own record unchanged, not silently dropped. Occupant: Mountain troll
+    // (id 7749, Wiki-verified this pass -- see the doc record for verbatim quotes; NOT any of the
+    // 8 pre-existing "Mountain troll" npc_defs.json entries, ids 936-942/4143, which are confirmed
+    // wrong on attackSpeed=4 (Wiki says 6) and maxHit=13 (Wiki says 11) -- the standing
+    // dataset-untrusted ledger finding, concretely reconfirmed). npcCoordinatorRadius=6 and the
+    // troll's own combatFollowDistance=7 mirror the Chaos druid warrior/Earth warrior precedent
+    // exactly (I.2's own instruction).
+    public static final ArenaDefinition ARENA_05 = new ArenaDefinition(
+            "ARENA_05",
+            new Location(3405, 2970),
+            7749,
+            new Location(3406, 2970),
+            6,
+            buildRectangularBoundary(3388, 2953, 3422, 2987, 979));
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -213,8 +233,9 @@ public final class ArenaDefinition {
             case "ARENA_02" -> ARENA_02;
             case "ARENA_03" -> ARENA_03;
             case "ARENA_04" -> ARENA_04;
+            case "ARENA_05" -> ARENA_05;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, or ARENA_04)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, or ARENA_05)");
         };
     }
 
@@ -239,8 +260,9 @@ public final class ArenaDefinition {
             case "ARENA_02" -> ARENA_02;
             case "ARENA_03" -> ARENA_03;
             case "ARENA_04" -> ARENA_04;
+            case "ARENA_05" -> ARENA_05;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, or ARENA_04)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, or ARENA_05)");
         };
     }
 
