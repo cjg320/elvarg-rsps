@@ -201,6 +201,16 @@ public final class ArenaDefinition {
             6,
             buildRectangularBoundary(3388, 2953, 3422, 2987, 979));
 
+    // CORNER-ASSISTED FLINCH CERTIFICATION pass: combines a boundary (a List<ObstacleSpec>, e.g.
+    // buildRectangularBoundary()'s own return) with additional interior obstacles (e.g. a corner)
+    // into one combined, still-immutable list -- ArenaDefinition's constructor takes exactly one
+    // obstacles list, and boundary + interior geometry are independently built elsewhere.
+    private static List<ObstacleSpec> withExtra(List<ObstacleSpec> base, ObstacleSpec... extra) {
+        List<ObstacleSpec> combined = new java.util.ArrayList<>(base);
+        combined.addAll(java.util.Arrays.asList(extra));
+        return Collections.unmodifiableList(combined);
+    }
+
     // MOUNTAIN TROLL ADDITION + FLINCH ARENA + FLINCH CERTIFICATION pass -- the flinch-family
     // PRESENT map, ARENA_05. Site (II.1): reuses ARENA_04's own swept donor footprint verbatim
     // (same 35x35 site, same 140-object rectangular boundary, same spawn pair) -- flinch is
@@ -221,6 +231,37 @@ public final class ArenaDefinition {
             6,
             buildRectangularBoundary(3388, 2953, 3422, 2987, 979));
 
+    // CORNER-ASSISTED FLINCH CERTIFICATION pass: ARENA_06, lever (b) -- same troll, same swept
+    // donor footprint/boundary/spawn pair as ARENA_04/ARENA_05 (site carries as proven), PLUS an
+    // interior L-corner obstacle (object 979, the certified ARENA_01/ARENA_03 two-wall precedent).
+    // Corner tile (3402, 2969) is a direct coordinate translation of ARENA_01's own proven deltas
+    // (bot-corner delta (3,1), npc-corner delta (4,1), stepout-nook delta (1,-1)) onto this site's
+    // spawn pair -- bot (3405,2970), npc (3406,2970) -- preserving ARENA_01's exact relative
+    // geometry between spawns and corner. 14-20 tiles of clearance from every boundary wall (site
+    // is 35x35, x[3388,3422] y[2953,2987]); no boundary interference.
+    //
+    // ORIENTATION CITATION (I.1's own instruction): the Wiki-documented directional constraint
+    // (THREE READ-ONLY AUDITS, Audit 1(a)) requires the opponent to be located WEST or EAST (not
+    // north/south) of the blocking object for the BFS tile-check-order stall to fire -- this
+    // project's own Group A finding (## 15). The npc spawn (3406,2970) sits east of the corner
+    // tile (3402,2969) by a (4,1) delta -- overwhelmingly east-dominant, same relative arrangement
+    // ARENA_01 used successfully (npc-corner delta (4,1) there too). North(dir=1)+east(dir=2)
+    // blocking, both at the corner tile, is therefore the SAME two-wall configuration ARENA_01
+    // certified, reused verbatim rather than re-derived, since the geometry it depends on
+    // (opponent east of the object) is preserved exactly at this site.
+    private static final List<ObstacleSpec> ARENA_06_OBSTACLES = withExtra(
+            buildRectangularBoundary(3388, 2953, 3422, 2987, 979),
+            new ObstacleSpec(979, new Location(3402, 2969, 0), 0, 1),
+            new ObstacleSpec(979, new Location(3402, 2969, 0), 0, 2));
+
+    public static final ArenaDefinition ARENA_06 = new ArenaDefinition(
+            "ARENA_06",
+            new Location(3405, 2970),
+            7749,
+            new Location(3406, 2970),
+            6,
+            ARENA_06_OBSTACLES);
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -234,8 +275,9 @@ public final class ArenaDefinition {
             case "ARENA_03" -> ARENA_03;
             case "ARENA_04" -> ARENA_04;
             case "ARENA_05" -> ARENA_05;
+            case "ARENA_06" -> ARENA_06;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, or ARENA_05)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, or ARENA_06)");
         };
     }
 
@@ -261,8 +303,9 @@ public final class ArenaDefinition {
             case "ARENA_03" -> ARENA_03;
             case "ARENA_04" -> ARENA_04;
             case "ARENA_05" -> ARENA_05;
+            case "ARENA_06" -> ARENA_06;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, or ARENA_05)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, or ARENA_06)");
         };
     }
 
