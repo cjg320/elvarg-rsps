@@ -707,9 +707,24 @@ public class CombatFactory {
 		// auto-retaliate extension (Audit 1(a)) -- ungated, this would also overwrite the bot's own
 		// COMBAT_ATTACK on every NPC hit, which can SHORTEN a longer remaining cooldown (unsafe-
 		// direction free-DPS artifact), unlike this mechanic's intended NPC-delay effect.
+		//
+		// FLINCH FIDELITY COMPLETION pass (Amendment 2, docs/PROJECT_STATE.md, Part B.2): "any
+		// hitsplats the opponent takes during this time... will not affect flinching" -- "this time"
+		// spans BOTH the retaliation delay (flinchDelayActive) and the 8-tick in-combat timer
+		// (FLINCH_IN_COMBAT armed), explicitly ORed. A hit landing during either phase is now a pure
+		// no-op re: flinching -- it neither re-arms nor extends anything, matching the Wiki exactly
+		// (previously: an unconditional SET, correct only by coincidence for every current
+		// constant-attack-speed opponent, PROJECT_STATE.md's own documented bounded edge -- this
+		// closes that gap for real, not just for the inert case).
 		if (qHit.getTotalDamage() > 0) {
 			if (target.isNpc()) {
-				target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
+				Combat targetCombat = target.getCombat();
+				boolean alreadyInFlinchWindow = targetCombat.isFlinchDelayActive()
+						|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
+				if (!alreadyInFlinchWindow) {
+					target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
+					targetCombat.setFlinchDelayActive(true);
+				}
 			}
 		}
 

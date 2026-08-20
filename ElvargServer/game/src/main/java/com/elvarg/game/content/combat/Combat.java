@@ -30,11 +30,24 @@ public class Combat {
     // that conversion never touches lastAttack at all, not even its type.
     private static final int UNRECIPROCATED_ATTACK_SKIP_TICKS = 10;
 
+    // FLINCH FIDELITY COMPLETION pass (docs/PROJECT_STATE.md): the Wiki's 8-tick "in-combat" timer
+    // (Flinching page, Part B.1) -- a SEPARATE constant from UNRECIPROCATED_ATTACK_SKIP_TICKS just
+    // above (the give-up-skip threshold, K=10) -- adjacent in concept (both govern "how long before
+    // the engine considers something lapsed"), deliberately NOT reused or derived from each other.
+    // K=10 is unchanged by this pass; this is a fourth, independent constant coupled to nothing.
+    private static final int FLINCH_IN_COMBAT_TICKS = 8;
+
     private final Mobile character;
     private final HitQueue hitQueue;
     private final Map<Player, HitDamageCache> damageMap = new HashMap<>();
     private final Stopwatch lastAttack = new Stopwatch();
     private int ticksSinceLastAttack = 0;
+
+    // FLINCH FIDELITY COMPLETION pass: true while the currently-registered TimerKey.COMBAT_ATTACK
+    // value IS a flinch-arm SET (from a landed hitsplat, CombatFactory.executeHit()), as opposed to
+    // an ordinary post-swing cooldown -- needed to distinguish the two for the expiry-moment reach
+    // check below (process()) without touching COMBAT_ATTACK's own pre-existing semantics.
+    private boolean flinchDelayActive = false;
     private final SecondsTimer poisonImmunityTimer = new SecondsTimer();
     private final SecondsTimer fireImmunityTimer = new SecondsTimer();
     private final SecondsTimer teleblockTimer = new SecondsTimer();
@@ -76,6 +89,16 @@ public class Combat {
      * field's own doc. Consumed by MinimalEnvironmentBot's payload builder only. */
     public boolean attackExecutedThisTick() {
         return attackExecutedThisTick;
+    }
+
+    /** FLINCH FIDELITY COMPLETION pass -- see {@link #flinchDelayActive}'s own doc. */
+    public boolean isFlinchDelayActive() {
+        return flinchDelayActive;
+    }
+
+    /** FLINCH FIDELITY COMPLETION pass -- see {@link #flinchDelayActive}'s own doc. */
+    public void setFlinchDelayActive(boolean flinchDelayActive) {
+        this.flinchDelayActive = flinchDelayActive;
     }
 
     public Combat(Mobile character) {
@@ -125,6 +148,21 @@ public class Combat {
 
         // Process the hit queue
         hitQueue.process(character);
+
+        // FLINCH FIDELITY COMPLETION pass: "after the retaliation delay, if the player is
+        // successfully out of the opponent's attack range, an 8-tick 'in-combat' timer runs" (Wiki,
+        // Flinching, Part B.1). Fires exactly once -- the tick flinchDelayActive is still true but
+        // COMBAT_ATTACK has just drained -- since process() runs exactly once per tick per entity
+        // (the same guarantee UNRECIPROCATED_ATTACK_SKIP_TICKS's own comment below already documents
+        // and relies on). Placed BEFORE the give-up-skip early-return just below so it can never be
+        // skipped by that branch on the same tick the delay happens to expire.
+        if (flinchDelayActive && !character.getTimers().has(TimerKey.COMBAT_ATTACK)) {
+            flinchDelayActive = false;
+            boolean canReachNow = target != null && CombatFactory.canReach(character, CombatFactory.getMethod(character), target);
+            if (!canReachNow) {
+                character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
+            }
+        }
 
         // Tick-counted (not wall-clock -- see UNRECIPROCATED_ATTACK_SKIP_TICKS above). process() is
         // called exactly once per tick per entity (NPC.java/Player.java each call getCombat().process()
@@ -215,6 +253,24 @@ public class Combat {
                     int speed = method.attackSpeed(character);
                     character.getTimers().register(TimerKey.COMBAT_ATTACK, speed);
                 }
+
+                // FLINCH FIDELITY COMPLETION pass (Amendment 1, adjudicated): "if the opponent does
+                // manage to attack... this timer starts running again at the moment the opponent is
+                // able to attack again" (Wiki, Flinching, Part B.1) -- worded around the ATTACK
+                // EXECUTING, never "hits"/"lands"/damage success, so this fires here, on the same
+                // ATTACK EXECUTION EVENT attackExecutedThisTick/pendingLateEngageSwing above already
+                // key off (accuracy/damage resolve later, async, via the hit queue) -- unconditional
+                // on hit outcome, deliberately: a swinging NPC is in combat regardless of whether the
+                // swing connects, and gating this on damage would let a 0-damage NPC swing leave a
+                // stale in-combat timer running, opening an unfaithful mid-fight re-flinch window a
+                // real player's opponent would not have. Scoped implicitly, no extra guard needed:
+                // FLINCH_IN_COMBAT is only ever armed for an NPC target (CombatFactory.executeHit()'s
+                // own isNpc() gate), so this is a genuine no-op for a player's own successful attack
+                // (Timers.has() reads false).
+                if (character.getTimers().has(TimerKey.FLINCH_IN_COMBAT)) {
+                    character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
+                }
+
                 instant = false;
                 if (character.isSpecialActivated()) {
                     character.setSpecialActivated(false);
@@ -305,6 +361,17 @@ public class Combat {
         setTarget(null);
         character.setCombatFollowing(null);
         character.setMobileInteraction(null);
+        // FLINCH FIDELITY COMPLETION pass (Amendment 3): reset must not leak flinch-window state
+        // across episode boundaries. The NPC-CHURN ROOT FIX precedent (MinimalEnvironmentBot.java)
+        // reuses the SAME NPC/Combat instance across a same-arena reset (target.getCombat().reset()
+        // is called there directly) -- without this, a residual flinchDelayActive or FLINCH_IN_COMBAT
+        // timer from the PREVIOUS episode would silently gate or arm the very first landed hit of the
+        // NEXT episode. cancel(), not "let it expire" -- an in-flight window at reset time must not
+        // survive into the fresh episode regardless of which phase (delay or in-combat timer) it was
+        // in. An arena-switch reset replaces the NPC object outright (fresh Combat, both pieces
+        // already false/absent by construction) -- this call is a no-op there, harmless either way.
+        flinchDelayActive = false;
+        character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
     }
 
     /**
