@@ -864,42 +864,36 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				}
 			}
 
-			// PURSUIT-RACE FIX (PROJECT_STATE.md section 13): deterministic episode-start engagement,
-			// replacing dependence on NpcAggression's own per-tick localNpcs-population race (root-caused
-			// last pass -- player.getLocalNpcs() reads empty on the exact tick NpcAggression.process()
-			// runs right after reset, missing the tight aggressionDistance() window if the bot has already
-			// started moving away by the next tick).
+			// GATE SIGN-OFF (harness-fidelity repair, docs/PROJECT_STATE.md, GOVERNING PLAN
+			// section III/XII): reset() is neutral world-state restoration ONLY -- position, HP,
+			// equipment, registration bookkeeping -- and must never manufacture combat/engagement
+			// state a normal OSRS player + stock environment would not have produced. The
+			// three-field forced engagement this comment used to describe (target/combatFollowing/
+			// mobileInteraction set directly, bypassing registration-gated validation) is REMOVED:
+			// it made every episode start pre-engaged with a certainty no real encounter has,
+			// defeating a non-aggressive control regardless of occupant choice (isAggressive()
+			// only gates NpcAggression's own initiation decision, never Combat.process()'s
+			// ordinary autonomous re-attack once target is set by ANY means -- including this
+			// forced set).
 			//
-			// NOT simply npc.getCombat().attack(player) (NpcAggression.java:101's own call) -- tried that
-			// first, live-diagnosed it failing specifically on a just-died-and-reregistered NPC:
-			// Combat.attack() -> performNewAttack() sets combatFollowing unconditionally, but then its own
-			// CombatFactory.canAttack() -> validTarget() check requires attacker.isRegistered(), which is
-			// still false this same tick (World.getAddNPCQueue().add(target) two lines above cannot have
-			// drained yet -- World.process()'s NPC-queue drain runs EARLY, before the player-processing
-			// pass this method runs inside of, per the NPC-CHURN ROOT FIX comment above). canAttack()
-			// returning INVALID_TARGET then hits performNewAttack()'s own INVALID_TARGET case, which calls
-			// character.getCombat().reset() -- wiping the combatFollowing/target that were just set, in
-			// the SAME call. Confirmed live: npc_target/combatFollowing were null immediately after
-			// attack() specifically when justReregistered was true, non-null when it was false.
+			// PRIOR RATIONALE, kept for context (the underlying registration race this fix used to
+			// route around is still real, just no longer worked around by forcing state):
+			// Combat.attack() calls performNewAttack(), whose canAttack()->validTarget() requires
+			// attacker.isRegistered() -- false on the EXACT tick a just-reregistered NPC's own
+			// World.getAddNPCQueue().add() call (a few lines above) cannot yet have drained. A
+			// synchronous attack() call on that same tick therefore fails closed (INVALID_TARGET ->
+			// Combat.reset(), wiping what was just set). This is no longer a problem: nothing in
+			// this method calls attack() synchronously anymore. Passive re-acquisition --
+			// NpcAggression.process() for aggressive occupants, or
+			// CombatFactory.handleRetaliation()'s HOME-gated 1-tick wake-up for ANY occupant once
+			// hit (CombatFactory.java:1079-1103) -- runs on a LATER tick, by which point
+			// registration has drained; neither path is exposed to the same-tick race this comment
+			// used to describe.
 			//
-			// Fix: set exactly the three fields performNewAttack() sets BEFORE its registration-gated
-			// validation (target, combatFollowing, mobileInteraction) directly, bypassing that gate --
-			// safe here because this is a fully controlled single-matchup arena (no PvP, no wilderness,
-			// no duels for validTarget()/canAttack() to legitimately reject). The actual first attack ROLL
-			// still happens through the normal, fully-validated path: target's own next Combat.process()
-			// tick calls performNewAttack() again, by which point registration has genuinely drained and
-			// canAttack() returns CAN_ATTACK for real -- this fix only removes the race from
-			// ENGAGEMENT/PURSUIT starting, not from combat validation itself.
-			// LOCKSTEP NOTE (ARENA VALIDATOR pass, PROJECT_STATE.md section 13): these three lines are a
-			// deliberate REPLICA of Combat.performNewAttack()'s own pre-validation field sets, not an
-			// independent design -- if a future stock change to that block ever adds, removes, or reorders
-			// what it sets before its canReach()/canAttack() gate, this replica drifts silently out of sync
-			// with it (the same replica-drift class this project has been burned by before -- see the
-			// GEOMETRY-FIELD WIRING PASS's own isTargetInMeleeRange() retirement). Check
-			// Combat.performNewAttack() first whenever touching this block.
-			target.getCombat().setTarget(this);
-			target.setCombatFollowing(this);
-			target.setMobileInteraction(this);
+			// Engagement now arises ONLY from (i) stock NpcAggression for aggressive occupants, or
+			// (ii) an ordinary player-equivalent Attack landing a hit (which retaliation-wakes ANY
+			// out-of-combat, HOME-state NPC regardless of its own aggression flag) -- never from
+			// reset() itself.
 
 			return null;
 		} catch (Exception e) {
