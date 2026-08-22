@@ -93,6 +93,15 @@ public class NPCMovementCoordinator {
                 if (npc.getLocation().equals(npc.getSpawnPosition())) {
                     coordinateState = CoordinateState.HOME;
                 }
+                // TEMP INSTRUMENTATION (R-D COORDINATOR-RESET / TAIL SURVIVAL CHECK,
+                // docs/PROJECT_STATE.md) -- direct event log at the actual reset-call site, so
+                // firing is observed, not inferred from a discontinuity in Combat.java's own
+                // per-tick trace. Logged BEFORE reset() so the pre-clear tail state is visible.
+                // Strip this whole block after R-D's verdict is recorded.
+                System.out.println("FLINCH_FIDELITY_GROUND_TRUTH COORDINATOR_RESET_FIRED char=" + npc.getIndex()
+                        + " tailTicksBeforeReset=" + npc.getTimers().getTicks(com.elvarg.util.timers.TimerKey.FLINCH_IN_COMBAT)
+                        + " combatAttackTicksBeforeReset=" + npc.getTimers().getTicks(com.elvarg.util.timers.TimerKey.COMBAT_ATTACK));
+                System.out.flush();
                 npc.getCombat().reset();
             }
             return;

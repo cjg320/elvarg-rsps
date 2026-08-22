@@ -698,32 +698,63 @@ public class CombatFactory {
 			}
 		}
 
-		// FLINCH IMPLEMENTATION pass (PROJECT_STATE.md): a landed hitsplat starts the NPC's own
-		// retaliation delay at floor(attack_speed/2) ticks (OSRS Wiki, Flinching -- "starts a
-		// retaliation delay which equals half of its attack speed (rounded down)"). SET on
-		// TimerKey.COMBAT_ATTACK, not an extend -- overwrites whatever cooldown state the target had.
-		// attackSpeed is read off the TARGET's own CombatMethod/base stat, never the attacker's.
-		// NPC-only (target.isNpc()): player-side flinching is a separate, out-of-scope PvP
-		// auto-retaliate extension (Audit 1(a)) -- ungated, this would also overwrite the bot's own
-		// COMBAT_ATTACK on every NPC hit, which can SHORTEN a longer remaining cooldown (unsafe-
-		// direction free-DPS artifact), unlike this mechanic's intended NPC-delay effect.
+		// STALE COMMENT CORRECTED (U.6, docs/PROJECT_STATE.md GATE SIGN-OFF -- U.1's own diagnosis-
+		// overrule found this block, in its pre-U.6 form, cited as if it were current spec during a
+		// live investigation; it described the v1 design, superseded well before this text was last
+		// touched -- code comments carry no supersession layer, so the stale claim sat here reading
+		// as authoritative. Corrected outright, not annotated, per U.6's own instruction.
 		//
-		// FLINCH FIDELITY COMPLETION pass (Amendment 2, docs/PROJECT_STATE.md, Part B.2): "any
-		// hitsplats the opponent takes during this time... will not affect flinching" -- "this time"
-		// spans BOTH the retaliation delay (flinchDelayActive) and the 8-tick in-combat timer
-		// (FLINCH_IN_COMBAT armed), explicitly ORed. A hit landing during either phase is now a pure
-		// no-op re: flinching -- it neither re-arms nor extends anything, matching the Wiki exactly
-		// (previously: an unconditional SET, correct only by coincidence for every current
-		// constant-attack-speed opponent, PROJECT_STATE.md's own documented bounded edge -- this
-		// closes that gap for real, not just for the inert case).
+		// RATIFIED MODEL: IN COMBAT = COMBAT_ATTACK running (ordinary cooldown OR the old
+		// retaliation-delay phase -- no longer distinguished, flinchDelayActive retired) OR the tail
+		// running OR pendingBareExpiry (P.1a's marker, see its own doc in Combat.java). FLINCHABLE =
+		// neither. A landed hitsplat arms the retaliation delay -- SET TimerKey.COMBAT_ATTACK to
+		// floor(attack_speed/2) (OSRS Wiki, Flinching -- "starts a retaliation delay which equals
+		// half of its attack speed (rounded down)") -- ONLY while the target is FLINCHABLE; it does
+		// NOT overwrite an already-running ordinary cooldown (H.3(1): an NPC attack execution
+		// unconditionally marks/maintains NOT FLINCHABLE; P.4: "all landed player hits during either
+		// ordinary cooldown/flinch delay or tail are NOOP" -- ordinary cooldown was ALWAYS one of the
+		// no-op cases, not a v1 carryover). attackSpeed is read off the TARGET's own
+		// CombatMethod/base stat, never the attacker's. NPC-only (target.isNpc()): player-side
+		// flinching is a separate, out-of-scope PvP auto-retaliate extension (Audit 1(a)) -- ungated,
+		// this would also touch the bot's own COMBAT_ATTACK on every NPC hit, unsafe-direction,
+		// unlike this mechanic's intended NPC-delay effect. Full gate record: docs/PROJECT_STATE.md,
+		// GATE SIGN-OFF sections (R.1 through U.6).
+		//
+		// "Any hitsplats the opponent takes during this time... will not affect flinching"
+		// (Amendment 2, Part B.2) -- "this time" reads off the collapsed IN COMBAT representation
+		// above. pendingBareExpiry exists because a hit resolving via hitQueue.process() on the
+		// exact tick COMBAT_ATTACK bare-expires, before that same tick's own arm-or-attack
+		// resolution, would otherwise observe a neither-timer transient P.3(ii) rejects.
+		// TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) --
+		// interleaved with the REAL, landed no-op gate logic below. Strip surgically: delete the
+		// three println+flush lines only (HIT/ARMED/NOOP), leaving the if/else structure and its
+		// real body intact, recompile, confirm via `git diff`.
+		if (target.isNpc()) {
+			Combat gtCombat = target.getCombat();
+			boolean gtAlready = target.getTimers().has(TimerKey.COMBAT_ATTACK)
+					|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+					|| gtCombat.isPendingBareExpiry();
+			System.out.println("FLINCH_FIDELITY_GROUND_TRUTH HIT dmg=" + qHit.getTotalDamage()
+					+ " alreadyInWindow=" + gtAlready
+					+ " combatAttackHas=" + target.getTimers().has(TimerKey.COMBAT_ATTACK)
+					+ " inCombatTimerHas=" + target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+					+ " pendingBareExpiry=" + gtCombat.isPendingBareExpiry()
+					+ " targetIndex=" + target.getIndex());
+			System.out.flush();
+		}
 		if (qHit.getTotalDamage() > 0) {
 			if (target.isNpc()) {
 				Combat targetCombat = target.getCombat();
-				boolean alreadyInFlinchWindow = targetCombat.isFlinchDelayActive()
-						|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
+				boolean alreadyInFlinchWindow = target.getTimers().has(TimerKey.COMBAT_ATTACK)
+						|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+						|| targetCombat.isPendingBareExpiry();
 				if (!alreadyInFlinchWindow) {
 					target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
-					targetCombat.setFlinchDelayActive(true);
+					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARMED delay=" + (CombatFactory.getMethod(target).attackSpeed(target) / 2));
+					System.out.flush();
+				} else {
+					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NOOP (already in window)");
+					System.out.flush();
 				}
 			}
 		}

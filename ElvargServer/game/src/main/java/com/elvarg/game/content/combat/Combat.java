@@ -43,11 +43,6 @@ public class Combat {
     private final Stopwatch lastAttack = new Stopwatch();
     private int ticksSinceLastAttack = 0;
 
-    // FLINCH FIDELITY COMPLETION pass: true while the currently-registered TimerKey.COMBAT_ATTACK
-    // value IS a flinch-arm SET (from a landed hitsplat, CombatFactory.executeHit()), as opposed to
-    // an ordinary post-swing cooldown -- needed to distinguish the two for the expiry-moment reach
-    // check below (process()) without touching COMBAT_ATTACK's own pre-existing semantics.
-    private boolean flinchDelayActive = false;
     private final SecondsTimer poisonImmunityTimer = new SecondsTimer();
     private final SecondsTimer fireImmunityTimer = new SecondsTimer();
     private final SecondsTimer teleblockTimer = new SecondsTimer();
@@ -85,20 +80,32 @@ public class Combat {
     private boolean pendingLateEngageSwing;
     private boolean inOutOfOrderEngageCall;
 
+    // GATE SIGN-OFF (P.1/P.1a/L.1-L.3, S.1 amendment, docs/PROJECT_STATE.md): the R.1-generalized
+    // arming site needs to detect a bare COMBAT_ATTACK expiry (no attack execution that tick)
+    // BEFORE hitQueue.process() resolves any of this tick's incoming hits -- source-pinned (L.2):
+    // NPC.java/Player.java call getTimers().process() before getCombat().process(), and
+    // hitQueue.process() is Combat.process()'s own first statement, ahead of the arm-or-attack
+    // decision -- so without a marker, a hit resolving on the exact expiry tick would read a
+    // neither-timer transient that will not survive the tick (P.3(ii)'s rejected third branch).
+    // pendingBareExpiry is true only for the span of the tick a bare expiry was detected, until
+    // resolveBareExpiry() (called on every process() exit path) consumes it.
+    // combatAttackActiveLastCheck remembers COMBAT_ATTACK.has() as of the end of the PREVIOUS
+    // tick's resolution -- the only way to detect "just expired this tick" given
+    // TimerRepository has no expiry callback (confirmed from source: process() only calls tick()).
+    private boolean pendingBareExpiry;
+    private boolean combatAttackActiveLastCheck;
+
     /** Trainer-privileged, deployment-honest read of {@link #attackExecutedThisTick} -- see that
      * field's own doc. Consumed by MinimalEnvironmentBot's payload builder only. */
     public boolean attackExecutedThisTick() {
         return attackExecutedThisTick;
     }
 
-    /** FLINCH FIDELITY COMPLETION pass -- see {@link #flinchDelayActive}'s own doc. */
-    public boolean isFlinchDelayActive() {
-        return flinchDelayActive;
-    }
-
-    /** FLINCH FIDELITY COMPLETION pass -- see {@link #flinchDelayActive}'s own doc. */
-    public void setFlinchDelayActive(boolean flinchDelayActive) {
-        this.flinchDelayActive = flinchDelayActive;
+    /** GATE SIGN-OFF -- see {@link #pendingBareExpiry}'s own doc. Read cross-class by
+     * CombatFactory's Hunk 3 gate, since that's where the neither-timer transient would otherwise
+     * be observable. */
+    public boolean isPendingBareExpiry() {
+        return pendingBareExpiry;
     }
 
     public Combat(Mobile character) {
@@ -146,23 +153,14 @@ public class Combat {
         attackExecutedThisTick = pendingLateEngageSwing;
         pendingLateEngageSwing = false;
 
+        // GATE SIGN-OFF (P.1a/L.2/L.3, docs/PROJECT_STATE.md): latch a bare-expiry detection BEFORE
+        // hitQueue.process() -- see pendingBareExpiry's own doc for why this ordering is
+        // load-bearing (source-pinned, not stylistic).
+        boolean combatAttackRunningNow = character.getTimers().has(TimerKey.COMBAT_ATTACK);
+        pendingBareExpiry = combatAttackActiveLastCheck && !combatAttackRunningNow;
+
         // Process the hit queue
         hitQueue.process(character);
-
-        // FLINCH FIDELITY COMPLETION pass: "after the retaliation delay, if the player is
-        // successfully out of the opponent's attack range, an 8-tick 'in-combat' timer runs" (Wiki,
-        // Flinching, Part B.1). Fires exactly once -- the tick flinchDelayActive is still true but
-        // COMBAT_ATTACK has just drained -- since process() runs exactly once per tick per entity
-        // (the same guarantee UNRECIPROCATED_ATTACK_SKIP_TICKS's own comment below already documents
-        // and relies on). Placed BEFORE the give-up-skip early-return just below so it can never be
-        // skipped by that branch on the same tick the delay happens to expire.
-        if (flinchDelayActive && !character.getTimers().has(TimerKey.COMBAT_ATTACK)) {
-            flinchDelayActive = false;
-            boolean canReachNow = target != null && CombatFactory.canReach(character, CombatFactory.getMethod(character), target);
-            if (!canReachNow) {
-                character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
-            }
-        }
 
         // Tick-counted (not wall-clock -- see UNRECIPROCATED_ATTACK_SKIP_TICKS above). process() is
         // called exactly once per tick per entity (NPC.java/Player.java each call getCombat().process()
@@ -175,11 +173,81 @@ public class Combat {
         ticksSinceLastAttack++;
         if (ticksSinceLastAttack >= UNRECIPROCATED_ATTACK_SKIP_TICKS) {
             setUnderAttack(null);
+            // GATE SIGN-OFF (L.1): the give-up-skip path never calls performNewAttack() this tick,
+            // so a bare expiry here must still resolve -- L.1's own reasoning: arming keeps the NPC
+            // honestly in-combat, closing a phantom window rather than opening one.
+            resolveBareExpiry();
+            printRDTraceIfNpc();
             return;
         }
 
         // Handle attacking
         performNewAttack(false);
+        resolveBareExpiry();
+        printRDTraceIfNpc();
+    }
+
+    // TEMP INSTRUMENTATION (R-D COORDINATOR-RESET / TAIL SURVIVAL CHECK, docs/PROJECT_STATE.md) --
+    // per-tick trace, NPC-scoped: both timers, the latch pair, the movement coordinator's own
+    // state, spawn-distance (max of |deltaX|,|deltaY|, the same metric NPCMovementCoordinator
+    // itself uses), and ticksSinceLastAttack. Strip this whole method + its two call sites after
+    // R-D's verdict is recorded; NOT via `git checkout --` (real hunks in this file too).
+    private void printRDTraceIfNpc() {
+        if (!character.isNpc()) {
+            return;
+        }
+        com.elvarg.game.entity.impl.npc.NPC npc = character.getAsNpc();
+        // GATE FIX (R-D rerun 1 -- the first attempt printed unconditionally for EVERY world NPC
+        // every tick, 114884 lines in a ~45-tick window; zero real HIT/ARMED/NOOP events landed in
+        // that run, almost certainly the print volume stalling the TICK_RATE=1 server enough to
+        // break the already-documented zero-slack duck timing -- a self-inflicted measurement
+        // artifact, not a finding). Scoped to only the NPC actually being traced: engaged in
+        // combat (target set) or carrying non-default flinch/coordinator state, matching this
+        // project's standing "log only the interesting case" convention.
+        boolean interesting = target != null
+                || character.getTimers().has(TimerKey.COMBAT_ATTACK)
+                || character.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+                || npc.getMovementCoordinator().getCoordinateState() != com.elvarg.game.entity.impl.npc.NPCMovementCoordinator.CoordinateState.HOME;
+        if (!interesting) {
+            return;
+        }
+        int dx = Math.abs(npc.getLocation().getX() - npc.getSpawnPosition().getX());
+        int dy = Math.abs(npc.getLocation().getY() - npc.getSpawnPosition().getY());
+        System.out.println("FLINCH_FIDELITY_GROUND_TRUTH RD_TRACE char=" + character.getIndex()
+                + " combatAttackTicks=" + character.getTimers().getTicks(TimerKey.COMBAT_ATTACK)
+                + " tailTicks=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT)
+                + " pendingBareExpiry=" + pendingBareExpiry
+                + " combatAttackActiveLastCheck=" + combatAttackActiveLastCheck
+                + " coordState=" + npc.getMovementCoordinator().getCoordinateState()
+                + " spawnDx=" + dx + " spawnDy=" + dy
+                + " coordRadius=" + npc.getMovementCoordinator().getRadius()
+                + " ticksSinceLastAttack=" + ticksSinceLastAttack
+                + " inCombatFactory=" + CombatFactory.inCombat(npc));
+        System.out.flush();
+    }
+
+    /**
+     * GATE SIGN-OFF (P.1, L.1, S.1 amendment, docs/PROJECT_STATE.md): the single generalized
+     * arming site -- ANY bare COMBAT_ATTACK expiry (this tick, no attack execution) arms the tail,
+     * no reachability check (L.1 deletes it; within this project's modeled scope -- melee-only
+     * basic auto-attackers, 1v1, no stuns/specials/phase behavior -- in-range+ready implies the
+     * attack executes, so "out of range" and "no attack executed" are extensionally identical; see
+     * L.1's own scope-trigger annotation for when that stops holding). NPC-scoped per S.1: player
+     * flinchability stays out of scope, an unread player-side tail would just be dead state
+     * polluting reset-residue diagnostics. Called on EVERY process() exit path.
+     */
+    private void resolveBareExpiry() {
+        if (character.isNpc() && pendingBareExpiry && !attackExecutedThisTick) {
+            character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
+            // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) -- strip only this
+            // println+flush, NOT via `git checkout --` (real hunks too). Recompile + `git diff`
+            // after.
+            System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_ARMED_ON_BARE_EXPIRY char=" + character.getIndex()
+                    + " ticksAfterArm=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT));
+            System.out.flush();
+        }
+        pendingBareExpiry = false;
+        combatAttackActiveLastCheck = character.getTimers().has(TimerKey.COMBAT_ATTACK);
     }
 
     /**
@@ -243,6 +311,16 @@ public class Combat {
                 } else {
                     attackExecutedThisTick = true;
                 }
+                // TEMP INSTRUMENTATION (U.4 discriminating probes, docs/PROJECT_STATE.md) -- direct,
+                // unconditional NPC-scoped "attack executed" event, needed by both the bot-first
+                // and NPC-first race probes to observe attack-execution timing precisely rather than
+                // inferring it from the wire's own enemy_swing_observed (a different observation
+                // frame, +1 drain-tick per the standing project convention). Strip after U.4.
+                if (character.isNpc()) {
+                    System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NPC_ATTACK_EXECUTED char=" + character.getIndex()
+                            + " combatAttackHasBeforeReset=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
+                    System.out.flush();
+                }
                 for (PendingHit hit : hits) {
                     CombatFactory.addPendingHit(hit);
                 }
@@ -254,21 +332,27 @@ public class Combat {
                     character.getTimers().register(TimerKey.COMBAT_ATTACK, speed);
                 }
 
-                // FLINCH FIDELITY COMPLETION pass (Amendment 1, adjudicated): "if the opponent does
-                // manage to attack... this timer starts running again at the moment the opponent is
-                // able to attack again" (Wiki, Flinching, Part B.1) -- worded around the ATTACK
-                // EXECUTING, never "hits"/"lands"/damage success, so this fires here, on the same
-                // ATTACK EXECUTION EVENT attackExecutedThisTick/pendingLateEngageSwing above already
-                // key off (accuracy/damage resolve later, async, via the hit queue) -- unconditional
-                // on hit outcome, deliberately: a swinging NPC is in combat regardless of whether the
-                // swing connects, and gating this on damage would let a 0-damage NPC swing leave a
-                // stale in-combat timer running, opening an unfaithful mid-fight re-flinch window a
-                // real player's opponent would not have. Scoped implicitly, no extra guard needed:
-                // FLINCH_IN_COMBAT is only ever armed for an NPC target (CombatFactory.executeHit()'s
-                // own isNpc() gate), so this is a genuine no-op for a player's own successful attack
-                // (Timers.has() reads false).
-                if (character.getTimers().has(TimerKey.FLINCH_IN_COMBAT)) {
-                    character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
+                // GATE SIGN-OFF (P.1 CANCEL-AT-ATTACK, docs/PROJECT_STATE.md): an NPC attack
+                // execution while a tail is live CANCELS it -- does not re-arm to 8 (that composition
+                // was rejected: tail(8) overlapping the fresh COMBAT_ATTACK stamp above would make
+                // flinchability return too early). The fresh COMBAT_ATTACK stamp a few lines above
+                // (existing, untouched machinery) already keeps the NPC IN COMBAT through the
+                // ordinary cooldown; the tail re-arms later, ONLY via resolveBareExpiry(), at that
+                // cooldown's own next bare expiry -- producing attack_speed+8 sequentially, never an
+                // overlapping immediate-8 countdown. cancel() on an absent key is a safe no-op
+                // (TimerRepository.java), so this is correct whether or not a tail was actually live.
+                if (character.isNpc()) {
+                    // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) -- logs ONLY the
+                    // interesting case (a tail was actually live to cancel), matching this project's
+                    // existing convention (RESET_WHILE_LIVE/RESET_POST_CLEAR). Strip surgically,
+                    // NOT via `git checkout --`, recompile, `git diff` after.
+                    boolean gtTailWasLive = character.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
+                    character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
+                    if (gtTailWasLive) {
+                        System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_CANCELED_ON_ATTACK char=" + character.getIndex()
+                                + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
+                        System.out.flush();
+                    }
                 }
 
                 instant = false;
@@ -358,20 +442,57 @@ public class Combat {
      * Resets combat for the {@link Mobile}.
      */
     public void reset() {
+        // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) --
+        // logs ONLY the interesting case (flinch state was actually live at entry) so a stray
+        // reset silently wiping it would be visible.
+        boolean gtHadLiveFlinchState = character.getTimers().has(TimerKey.COMBAT_ATTACK)
+                || character.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
+        if (gtHadLiveFlinchState) {
+            System.out.println("FLINCH_FIDELITY_GROUND_TRUTH RESET_WHILE_LIVE char=" + character.getIndex()
+                    + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK)
+                    + " inCombatTimerHas=" + character.getTimers().has(TimerKey.FLINCH_IN_COMBAT));
+            System.out.flush();
+        }
         setTarget(null);
         character.setCombatFollowing(null);
         character.setMobileInteraction(null);
-        // FLINCH FIDELITY COMPLETION pass (Amendment 3): reset must not leak flinch-window state
-        // across episode boundaries. The NPC-CHURN ROOT FIX precedent (MinimalEnvironmentBot.java)
-        // reuses the SAME NPC/Combat instance across a same-arena reset (target.getCombat().reset()
-        // is called there directly) -- without this, a residual flinchDelayActive or FLINCH_IN_COMBAT
-        // timer from the PREVIOUS episode would silently gate or arm the very first landed hit of the
-        // NEXT episode. cancel(), not "let it expire" -- an in-flight window at reset time must not
-        // survive into the fresh episode regardless of which phase (delay or in-combat timer) it was
-        // in. An arena-switch reset replaces the NPC object outright (fresh Combat, both pieces
-        // already false/absent by construction) -- this call is a no-op there, harmless either way.
-        flinchDelayActive = false;
+        // FLINCH FIDELITY COMPLETION pass (Amendment 3, GATE SIGN-OFF S.2 restatement): reset must
+        // not leak flinch-window state across episode boundaries. The NPC-CHURN ROOT FIX precedent
+        // (MinimalEnvironmentBot.java) reuses the SAME NPC/Combat instance across a same-arena reset
+        // (target.getCombat().reset() is called there directly) -- without this, a residual tail or
+        // marker-bookkeeping value from the PREVIOUS episode would silently gate or misdetect a
+        // bare expiry in the NEXT episode. cancel(), not "let it expire" -- an in-flight tail at
+        // reset time must not survive into the fresh episode. An arena-switch reset replaces the NPC
+        // object outright (fresh Combat, all three pieces already false/absent by construction) --
+        // this call is a no-op there, harmless either way. Three pieces now, not two:
         character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
+        pendingBareExpiry = false;
+        combatAttackActiveLastCheck = false;
+        // GATE SIGN-OFF R-A (S.6's own secondary finding, docs/PROJECT_STATE.md): under the
+        // generalized design a leftover mid-cooldown COMBAT_ATTACK surviving an episode reset could
+        // later expire naturally in the NEW episode and arm a tail attributable to the PREVIOUS
+        // episode's combat -- the arena OPPONENT specifically (target.getCombat().reset(), the
+        // NPC-CHURN ROOT FIX reuse path), whose stale cooldown would otherwise NOOP the next
+        // episode's opening hit (Hunk 3's own IN COMBAT read). NPC-scoped, matching every other
+        // flinch-specific gate in this file -- the bot's own leftover COMBAT_ATTACK is a different,
+        // non-flinch concern (real OSRS doesn't reset attack cooldown on retarget either) and is
+        // deliberately left untouched here.
+        if (character.isNpc()) {
+            character.getTimers().cancel(TimerKey.COMBAT_ATTACK);
+        }
+        // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) -- a
+        // genuine POST-clear readback (not a reprint of the pre-clear RESET_WHILE_LIVE state
+        // above), gated the same way, so residue is checked directly at the exact moment Amendment
+        // 3's own clearing code just ran, rather than inferred from whatever hit happens to land
+        // next (which can legitimately be a NOOP for reasons having nothing to do with residue --
+        // the NPC's own fresh in-episode swing, or a leftover COMBAT_ATTACK cooldown this method
+        // deliberately does NOT clear -- see S.6's own secondary finding, docs/PROJECT_STATE.md).
+        if (gtHadLiveFlinchState) {
+            System.out.println("FLINCH_FIDELITY_GROUND_TRUTH RESET_POST_CLEAR char=" + character.getIndex()
+                    + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK)
+                    + " inCombatTimerHas=" + character.getTimers().has(TimerKey.FLINCH_IN_COMBAT));
+            System.out.flush();
+        }
     }
 
     /**
