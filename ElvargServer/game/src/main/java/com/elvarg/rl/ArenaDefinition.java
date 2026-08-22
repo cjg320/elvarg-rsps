@@ -262,6 +262,27 @@ public final class ArenaDefinition {
             6,
             ARENA_06_OBSTACLES);
 
+    // GATE SIGN-OFF, DO.2A (docs/PROJECT_STATE.md, GOVERNING PLAN section IX): non-aggressive
+    // diagnostic CONTROL only -- removes aggression as a confound for the player-first-initiation
+    // baseline. NOT the final flinch-certification opponent; do not build curriculum content on
+    // this arena. Occupant: Chicken, id 3661 (genuine "Chicken" entry cross-checked -- id 1173/1174
+    // from an earlier Wiki-page fetch turned out to be unrelated NPCs ("Gaius"/"Jatix"), not
+    // chickens; 3661/3662 are the real ones, confirmed against npc_defs.json's own name field).
+    // aggressive=false in BOTH the dataset and a fresh Wiki fetch (no conflict). attackSpeed
+    // CONFLICTS: dataset says 6, Wiki fetched fresh (twice, independently) says 4 ticks -- same
+    // "dataset-untrusted" class of discrepancy already documented for the Mountain troll's own
+    // attackSpeed/maxHit fields; not fixed here (out of DO.2A's own scope, which is affordance not
+    // stat accuracy), flagged so the expected signature is pinned against what the SERVER will
+    // actually run (dataset's 6, giving floor(6/2)=3), not the Wiki's true value. Same open-field
+    // spawn pair as ARENA_00/ARENA_02, zero obstacles -- DO.2A needs no reach-denial geometry.
+    public static final ArenaDefinition ARENA_07 = new ArenaDefinition(
+            "ARENA_07",
+            new Location(3089, 3466),
+            3661,
+            new Location(3090, 3466),
+            6,
+            Collections.emptyList());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -276,8 +297,9 @@ public final class ArenaDefinition {
             case "ARENA_04" -> ARENA_04;
             case "ARENA_05" -> ARENA_05;
             case "ARENA_06" -> ARENA_06;
+            case "ARENA_07" -> ARENA_07;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, or ARENA_06)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, or ARENA_07)");
         };
     }
 
@@ -304,8 +326,9 @@ public final class ArenaDefinition {
             case "ARENA_04" -> ARENA_04;
             case "ARENA_05" -> ARENA_05;
             case "ARENA_06" -> ARENA_06;
+            case "ARENA_07" -> ARENA_07;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, or ARENA_06)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, or ARENA_07)");
         };
     }
 
