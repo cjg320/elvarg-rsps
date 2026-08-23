@@ -96,6 +96,41 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	private static final int COMBAT_ACTION_TOGGLE_RUN_INDEX = 6;
 
 	/**
+	 * MODEL B (docs/PROJECT_STATE.md, "MODEL B ADOPTED FOR STANDING COMBAT"): the combat-head
+	 * values that genuinely INTERRUPT an established combat interaction. Under Model A the decode
+	 * was an exhaustive binary -- ATTACK, else reset -- so "not ATTACK" was treated as "suppress".
+	 * That made {@code nothing} and {@code toggle_run} cancel combat by fall-through rather than
+	 * by design. Under Model B the reset must be conditional on the action being interrupt-class.
+	 *
+	 * Indices 2-5 are eat_food / drink_prayer_pot / drink_combat_pot / drink_defence_pot. They are
+	 * CLASSIFIED here; they remain decode-UNWIRED (no consumable effect executes) -- selecting one
+	 * resets combat exactly as it does today, which is unchanged observable behaviour. Wiring the
+	 * actual food/potion effects is a separate, separately-gated increment.
+	 *
+	 * SEMANTIC correspondence only with the Python-side clearing classification
+	 * (agent/elvarg_socket_env.py's _INTERRUPT_COMBAT_INDICES) -- these are NOT mechanically
+	 * identical literals and are deliberately not claimed to be: the Python latch's clearing set
+	 * also spans the MOVE head and the observable terminals, which are realized on other paths.
+	 * The canonical definition lands in docs/PROJECT_STATE.md via pass (c).
+	 */
+	private static final java.util.Set<Integer> COMBAT_ACTION_INTERRUPT_INDICES =
+			java.util.Set.of(2, 3, 4, 5);
+
+	/**
+	 * MODEL B: the ENUMERATED combat-head values that introduce no new combat input --
+	 * {@code nothing} (0) and {@code toggle_run} (6). Deliberately a closed enumeration rather
+	 * than "everything that isn't ATTACK or interrupt-class": {@link #parseCombatActionIndex}
+	 * returns the raw parsed integer with NO domain check (and no Python layer enforces the
+	 * 0..6 bound either -- the action-space nvec bounds a SAMPLING policy, not a hand-crafted
+	 * raw tuple, which this project's own scripts routinely send). A successfully parsed
+	 * out-of-domain value such as 7 or 99 therefore reaches this decode. Under the superseded
+	 * Model-A binary it hit the reset; it must not silently start preserving combat now.
+	 * This is the narrow known case; reset is the default.
+	 */
+	private static final java.util.Set<Integer> COMBAT_ACTION_PRESERVE_INDICES =
+			java.util.Set.of(0, 6);
+
+	/**
 	 * (dx, dy) deltas for agent/actions.py's MOVE_ACTIONS
 	 * {@code ["idle", "N", "S", "E", "W", "NE", "NW", "SE", "SW"]}, index-for-index. Elvarg's own
 	 * {@link com.elvarg.game.model.Direction} enum uses +y = north (NORTH(1, 0, 1), i.e. x=0,y=1)
@@ -479,38 +514,52 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					this.getCombat().setTarget(target);
 					logger.info("[MinimalEnv] step received, attack target set (resolves post-movement in "
 							+ "getCombat().process())");
+				} else if (COMBAT_ACTION_PRESERVE_INDICES.contains(combatActionIndex)) {
+					// NO NEW COMBAT INPUT (MODEL B, the focal change): `nothing` (0) and
+					// `toggle_run` (6). No Combat.reset(), no target/combatFollowing/
+					// mobileInteraction clear, no timer mutation -- so whatever combat state
+					// exists, INCLUDING NONE (episode start, or after a prior interrupt), is left
+					// unchanged and ordinary Combat.process() (Player.java:404) proceeds from it.
+					// This branch asserts nothing about an interaction existing; it only declines
+					// to mutate. toggle_run's own run-state side effect already fired ABOVE
+					// (:419) and is unaffected; it previously reached the reset only by falling
+					// through the exhaustive not-ATTACK branch, never by design.
+					logger.info("[MinimalEnv] step received, no new combat input (combat_action_index="
+							+ combatActionIndex + ") - combat state left unchanged");
 				} else {
-					// SUPPRESS: attack-only scope (Model A, PROJECT_STATE.md section 15 Group A
-					// open question 3) - every other combat-head value still collapses here,
-					// including toggle_run (RUN/WALK ACTION INCREMENT pass: its own side effect
-					// already fired ABOVE, before movement - it still isn't "attack", so this tick
-					// still suppresses combat, exactly matching sim/combat_env.py's own mutual
-					// exclusivity, where combat_action is a single categorical choice per tick) and
-					// the still-not-yet-wired consumable actions (eat_food/drink_*), not just
-					// "nothing". Prayer head values are ignored entirely (masked-inert, section 13's
+					// INTERRUPT / FAIL-SAFE DEFAULT (MODEL B). Covers, deliberately, THREE cases:
+					//   (i)   known interrupt-class actions -- eat_food / drink_* (2-5), which
+					//         genuinely end an established interaction. CLASSIFIED here; still
+					//         decode-UNWIRED (no consumable effect executes), so selecting one
+					//         resets combat exactly as today -- unchanged observable behaviour.
+					//   (ii)  parse failure (-1) -- an unreadable action must never be treated as
+					//         "keep fighting"; it fails safe to ending the interaction.
+					//   (iii) any out-of-domain index (7, 99, ...) -- parseCombatActionIndex()
+					//         applies no bound and no caller layer enforces one, so an unknown
+					//         value MUST NOT silently preserve combat. Reset is the default; the
+					//         no-new-input case above is the narrow enumeration.
+					//
+					// Prayer head values are ignored entirely (masked-inert, section 13's
 					// ACTION-SPACE CONTRACT DECISION).
 					//
-					// Combat.reset() here is NOT optional cleanup - it's the only thing that
-					// actually suppresses the attack. `target` stays set across ticks once first
-					// attacked, and Combat.process() (Player.java:404) re-attacks autonomously off
-					// that persisted target every off-cooldown tick regardless of what we inject
+					// Combat.reset() is what actually ends the interaction: `target` stays set
+					// across ticks once first attacked, and Combat.process() (Player.java:404)
+					// re-attacks autonomously off that persisted target every off-cooldown tick
 					// (PROJECT_STATE.md section 8.1's SIXTH attack-driving path) - simply not
-					// calling attack() this tick would NOT stop that autonomous call from firing
-					// later this same tick. Clearing target here does: Combat.performNewAttack()
-					// no-ops at target==null (Combat.java:88). Redundant-but-harmless if
+					// calling attack() would NOT stop it. Clearing target does:
+					// Combat.performNewAttack() no-ops at target==null. Redundant-but-harmless if
 					// applyMoveAction() above already cleared it via walkToReset() this same tick.
 					//
-					// TRIPWIRE - this depends on dispatch ORDER, not just presence: this code runs
-					// from the PlayerPacketsProcessedEvent dispatch (Player.java:397), which
-					// precedes getCombat().process() (Player.java:404) within the SAME
-					// Player.process() call, so our reset() lands before that tick's autonomous
-					// attempt ever runs. If this dispatch point ever moves to fire AFTER
-					// getCombat().process(), BOTH the attack and suppress paths break silently:
-					// the deferred attack-target-set above would resolve a tick late, and reset()
-					// would clear the target only after the autonomous call already fired, so
-					// suppression would stop suppressing.
+					// TRIPWIRE - depends on dispatch ORDER, not just presence: this runs from the
+					// PlayerPacketsProcessedEvent dispatch (Player.java:397), which precedes
+					// getCombat().process() (:404) within the SAME Player.process() call.
+					// NARROWED FOR MODEL B: under Model A this tripwire also protected per-tick
+					// SUPPRESSION ordering; that half retires with suppression itself. What
+					// remains load-bearing is the DEFERRED-ATTACK half -- if this dispatch ever
+					// fires AFTER getCombat().process(), the attack target-set above resolves a
+					// tick late.
 					this.getCombat().reset();
-					logger.info("[MinimalEnv] step received, action suppressed (combat_action_index="
+					logger.info("[MinimalEnv] step received, interaction interrupted (combat_action_index="
 							+ combatActionIndex + ")");
 				}
 			} else {
