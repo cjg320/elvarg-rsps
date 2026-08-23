@@ -545,6 +545,15 @@ public class CombatFactory {
 			return;
 		}
 
+		// DO2A_DIAG GAP-filler (design pass STEP 4.2, "PendingHit creation"; TEMP, strippable after
+		// the DO.2A run). Our-bot-attacker-scoped, matching the existing attacker == getInstance()
+		// idiom already live at :776 below.
+		if (attacker == com.elvarg.rl.MinimalEnvironmentBot.getInstance() && Combat.FLINCH_CERT_TRACE_ENABLED) {
+			System.out.println("DO2A_DIAG PENDING_HIT_CREATED targetIndex=" + target.getIndex()
+					+ " targetIsNpc=" + target.isNpc() + " damage=" + qHit.getTotalDamage());
+			System.out.flush();
+		}
+
 		if (attacker.isPlayer()) {
 			// Reward the player experience for this attack..
 			rewardExp(attacker.getAsPlayer(), qHit);
@@ -725,22 +734,24 @@ public class CombatFactory {
 		// above. pendingBareExpiry exists because a hit resolving via hitQueue.process() on the
 		// exact tick COMBAT_ATTACK bare-expires, before that same tick's own arm-or-attack
 		// resolution, would otherwise observe a neither-timer transient P.3(ii) rejects.
-		// TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) --
-		// interleaved with the REAL, landed no-op gate logic below. Strip surgically: delete the
-		// three println+flush lines only (HIT/ARMED/NOOP), leaving the if/else structure and its
-		// real body intact, recompile, confirm via `git diff`.
+		// PROMOTED (osrsproject repo, docs/PROJECT_STATE.md, "RD-4 EQUIVALENCE VERDICT
+		// (DO.2A-SCOPED)", commit 7184aae): interleaved with the REAL, landed no-op gate logic
+		// below -- load-bearing for DO.2A's own "player hit delivery" / "ARM/NOOP verdict" trace
+		// items. No longer TEMP; gated by FLINCH_CERT_TRACE_ENABLED.
 		if (target.isNpc()) {
 			Combat gtCombat = target.getCombat();
 			boolean gtAlready = target.getTimers().has(TimerKey.COMBAT_ATTACK)
 					|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
 					|| gtCombat.isPendingBareExpiry();
-			System.out.println("FLINCH_FIDELITY_GROUND_TRUTH HIT dmg=" + qHit.getTotalDamage()
-					+ " alreadyInWindow=" + gtAlready
-					+ " combatAttackHas=" + target.getTimers().has(TimerKey.COMBAT_ATTACK)
-					+ " inCombatTimerHas=" + target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
-					+ " pendingBareExpiry=" + gtCombat.isPendingBareExpiry()
-					+ " targetIndex=" + target.getIndex());
-			System.out.flush();
+			if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+				System.out.println("FLINCH_FIDELITY_GROUND_TRUTH HIT dmg=" + qHit.getTotalDamage()
+						+ " alreadyInWindow=" + gtAlready
+						+ " combatAttackHas=" + target.getTimers().has(TimerKey.COMBAT_ATTACK)
+						+ " inCombatTimerHas=" + target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+						+ " pendingBareExpiry=" + gtCombat.isPendingBareExpiry()
+						+ " targetIndex=" + target.getIndex());
+				System.out.flush();
+			}
 		}
 		if (qHit.getTotalDamage() > 0) {
 			if (target.isNpc()) {
@@ -750,11 +761,15 @@ public class CombatFactory {
 						|| targetCombat.isPendingBareExpiry();
 				if (!alreadyInFlinchWindow) {
 					target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
-					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARMED delay=" + (CombatFactory.getMethod(target).attackSpeed(target) / 2));
-					System.out.flush();
+					if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+						System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARMED delay=" + (CombatFactory.getMethod(target).attackSpeed(target) / 2));
+						System.out.flush();
+					}
 				} else {
-					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NOOP (already in window)");
-					System.out.flush();
+					if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+						System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NOOP (already in window)");
+						System.out.flush();
+					}
 				}
 			}
 		}
@@ -1089,6 +1104,17 @@ public class CombatFactory {
 
 			if (!auto_ret) {
 				return;
+			}
+
+			// DO2A_DIAG GAP-filler (design pass STEP 4.2, "retaliation timing" attribution; TEMP,
+			// strippable after the DO.2A run): marks the specific moment the 1-tick HOME-gated
+			// wake task is submitted -- the exact mechanism DO.2A's own qualifying-start check (S4)
+			// depends on, distinct from the ordinary autonomous re-attack path that also ends up
+			// calling performNewAttack().
+			if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+				System.out.println("DO2A_DIAG RETALIATION_TASK_SUBMITTED attackerIndex=" + attacker.getIndex()
+						+ " targetIndex=" + target.getIndex() + " targetIsNpc=" + target.isNpc());
+				System.out.flush();
 			}
 
 			// Start a task, don't autoretaliate immediately

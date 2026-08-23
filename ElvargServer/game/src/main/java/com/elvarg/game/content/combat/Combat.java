@@ -37,6 +37,16 @@ public class Combat {
     // K=10 is unchanged by this pass; this is a fourth, independent constant coupled to nothing.
     private static final int FLINCH_IN_COMBAT_TICKS = 8;
 
+    // DO.2A INSTRUMENTATION GATING (osrsproject repo, docs/PROJECT_STATE.md, "RD-4 EQUIVALENCE
+    // VERDICT (DO.2A-SCOPED)", commit 7184aae): every FLINCH_FIDELITY_GROUND_TRUTH / DO2A_DIAG
+    // emission in this file and CombatFactory.java is gated on this single flag, read ONCE at
+    // class-load, default OFF. Wraps ONLY the println/flush call itself -- never the state reads
+    // that compute what it would print -- so disabling it changes zero combat/tactical control
+    // flow, only whether a line reaches stdout. Certification-only; threaded through
+    // make_server()'s extra_env on the osrsproject side (not this file).
+    public static final boolean FLINCH_CERT_TRACE_ENABLED =
+            "1".equals(System.getenv("FLINCH_CERT_TRACE_ENABLED"));
+
     private final Mobile character;
     private final HitQueue hitQueue;
     private final Map<Player, HitDamageCache> damageMap = new HashMap<>();
@@ -182,28 +192,41 @@ public class Combat {
         }
 
         // Handle attacking
+        // DO2A_DIAG GAP-filler (design pass STEP 4.2, "action authoritative point" / "player
+        // attack execution"; TEMP, strippable after the DO.2A run): our-bot-instance-scoped entry
+        // into the tick's ordinary combat barrier, immediately before performNewAttack(false)
+        // resolves it -- the player-side counterpart to NPC_ATTACK_EXECUTED below.
+        if (FLINCH_CERT_TRACE_ENABLED && character == com.elvarg.rl.MinimalEnvironmentBot.getInstance() && target != null) {
+            System.out.println("DO2A_DIAG PLAYER_COMBAT_PROCESS_ENTRY char=" + character.getIndex()
+                    + " targetIndex=" + target.getIndex()
+                    + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
+            System.out.flush();
+        }
         performNewAttack(false);
         resolveBareExpiry();
         printRDTraceIfNpc();
     }
 
-    // TEMP INSTRUMENTATION (R-D COORDINATOR-RESET / TAIL SURVIVAL CHECK, docs/PROJECT_STATE.md) --
-    // per-tick trace, NPC-scoped: both timers, the latch pair, the movement coordinator's own
-    // state, spawn-distance (max of |deltaX|,|deltaY|, the same metric NPCMovementCoordinator
-    // itself uses), and ticksSinceLastAttack. Strip this whole method + its two call sites after
-    // R-D's verdict is recorded; NOT via `git checkout --` (real hunks in this file too).
+    // PROMOTED (osrsproject repo, docs/PROJECT_STATE.md, "RD-4 EQUIVALENCE VERDICT
+    // (DO.2A-SCOPED)", commit 7184aae): per-tick trace, NPC-scoped -- load-bearing for DO.2A's own
+    // "raw timers" and "target/interaction (diagnostic)" trace items. Both timers, the latch pair,
+    // the movement coordinator's own state, spawn-distance (max of |deltaX|,|deltaY|, the same
+    // metric NPCMovementCoordinator itself uses), ticksSinceLastAttack, and (DO2A_DIAG GAP-filler,
+    // folded into this existing line rather than a second per-tick print) the NPC's own
+    // target/interactingMobile reference. No longer TEMP; gated by FLINCH_CERT_TRACE_ENABLED.
     private void printRDTraceIfNpc() {
         if (!character.isNpc()) {
             return;
         }
         com.elvarg.game.entity.impl.npc.NPC npc = character.getAsNpc();
-        // GATE FIX (R-D rerun 1 -- the first attempt printed unconditionally for EVERY world NPC
-        // every tick, 114884 lines in a ~45-tick window; zero real HIT/ARMED/NOOP events landed in
-        // that run, almost certainly the print volume stalling the TICK_RATE=1 server enough to
-        // break the already-documented zero-slack duck timing -- a self-inflicted measurement
-        // artifact, not a finding). Scoped to only the NPC actually being traced: engaged in
-        // combat (target set) or carrying non-default flinch/coordinator state, matching this
-        // project's standing "log only the interesting case" convention.
+        // GATE FIX (R-D rerun 1, retained verbatim -- historical rationale for the `interesting`
+        // scope below unchanged by promotion): the first attempt printed unconditionally for
+        // EVERY world NPC every tick, 114884 lines in a ~45-tick window; zero real HIT/ARMED/NOOP
+        // events landed in that run, almost certainly the print volume stalling the TICK_RATE=1
+        // server enough to break the already-documented zero-slack duck timing -- a self-inflicted
+        // measurement artifact, not a finding. Scoped to only the NPC actually being traced:
+        // engaged in combat (target set) or carrying non-default flinch/coordinator state,
+        // matching this project's standing "log only the interesting case" convention.
         boolean interesting = target != null
                 || character.getTimers().has(TimerKey.COMBAT_ATTACK)
                 || character.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
@@ -213,17 +236,21 @@ public class Combat {
         }
         int dx = Math.abs(npc.getLocation().getX() - npc.getSpawnPosition().getX());
         int dy = Math.abs(npc.getLocation().getY() - npc.getSpawnPosition().getY());
-        System.out.println("FLINCH_FIDELITY_GROUND_TRUTH RD_TRACE char=" + character.getIndex()
-                + " combatAttackTicks=" + character.getTimers().getTicks(TimerKey.COMBAT_ATTACK)
-                + " tailTicks=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT)
-                + " pendingBareExpiry=" + pendingBareExpiry
-                + " combatAttackActiveLastCheck=" + combatAttackActiveLastCheck
-                + " coordState=" + npc.getMovementCoordinator().getCoordinateState()
-                + " spawnDx=" + dx + " spawnDy=" + dy
-                + " coordRadius=" + npc.getMovementCoordinator().getRadius()
-                + " ticksSinceLastAttack=" + ticksSinceLastAttack
-                + " inCombatFactory=" + CombatFactory.inCombat(npc));
-        System.out.flush();
+        if (FLINCH_CERT_TRACE_ENABLED) {
+            System.out.println("FLINCH_FIDELITY_GROUND_TRUTH RD_TRACE char=" + character.getIndex()
+                    + " combatAttackTicks=" + character.getTimers().getTicks(TimerKey.COMBAT_ATTACK)
+                    + " tailTicks=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT)
+                    + " pendingBareExpiry=" + pendingBareExpiry
+                    + " combatAttackActiveLastCheck=" + combatAttackActiveLastCheck
+                    + " coordState=" + npc.getMovementCoordinator().getCoordinateState()
+                    + " spawnDx=" + dx + " spawnDy=" + dy
+                    + " coordRadius=" + npc.getMovementCoordinator().getRadius()
+                    + " ticksSinceLastAttack=" + ticksSinceLastAttack
+                    + " inCombatFactory=" + CombatFactory.inCombat(npc)
+                    + " npcTarget=" + (target == null ? "null" : target.getIndex())
+                    + " npcInteractingMobile=" + (npc.getInteractingMobile() == null ? "null" : npc.getInteractingMobile().getIndex()));
+            System.out.flush();
+        }
     }
 
     /**
@@ -239,12 +266,14 @@ public class Combat {
     private void resolveBareExpiry() {
         if (character.isNpc() && pendingBareExpiry && !attackExecutedThisTick) {
             character.getTimers().register(TimerKey.FLINCH_IN_COMBAT, FLINCH_IN_COMBAT_TICKS);
-            // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) -- strip only this
-            // println+flush, NOT via `git checkout --` (real hunks too). Recompile + `git diff`
-            // after.
-            System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_ARMED_ON_BARE_EXPIRY char=" + character.getIndex()
-                    + " ticksAfterArm=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT));
-            System.out.flush();
+            // PROMOTED (osrsproject repo, docs/PROJECT_STATE.md, "RD-4 EQUIVALENCE VERDICT
+            // (DO.2A-SCOPED)", commit 7184aae): load-bearing for DO.2A's own "raw timers"/
+            // ARM-adjacent trace evidence. No longer TEMP; gated by FLINCH_CERT_TRACE_ENABLED.
+            if (FLINCH_CERT_TRACE_ENABLED) {
+                System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_ARMED_ON_BARE_EXPIRY char=" + character.getIndex()
+                        + " ticksAfterArm=" + character.getTimers().getTicks(TimerKey.FLINCH_IN_COMBAT));
+                System.out.flush();
+            }
         }
         pendingBareExpiry = false;
         combatAttackActiveLastCheck = character.getTimers().has(TimerKey.COMBAT_ATTACK);
@@ -311,12 +340,14 @@ public class Combat {
                 } else {
                     attackExecutedThisTick = true;
                 }
-                // TEMP INSTRUMENTATION (U.4 discriminating probes, docs/PROJECT_STATE.md) -- direct,
-                // unconditional NPC-scoped "attack executed" event, needed by both the bot-first
-                // and NPC-first race probes to observe attack-execution timing precisely rather than
-                // inferring it from the wire's own enemy_swing_observed (a different observation
-                // frame, +1 drain-tick per the standing project convention). Strip after U.4.
-                if (character.isNpc()) {
+                // PROMOTED (osrsproject repo, docs/PROJECT_STATE.md, "RD-4 EQUIVALENCE VERDICT
+                // (DO.2A-SCOPED)", commit 7184aae): NPC-scoped "attack executed" event, needed by
+                // both the bot-first and NPC-first race probes to observe attack-execution timing
+                // precisely rather than inferring it from the wire's own enemy_swing_observed (a
+                // different observation frame, +1 drain-tick per the standing project convention);
+                // now also load-bearing for DO.2A's own NPC_ATTACK_EXECUTED trace item. No longer
+                // TEMP -- gated by FLINCH_CERT_TRACE_ENABLED instead of relying on a future strip.
+                if (character.isNpc() && FLINCH_CERT_TRACE_ENABLED) {
                     System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NPC_ATTACK_EXECUTED char=" + character.getIndex()
                             + " combatAttackHasBeforeReset=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
                     System.out.flush();
@@ -342,13 +373,19 @@ public class Combat {
                 // overlapping immediate-8 countdown. cancel() on an absent key is a safe no-op
                 // (TimerRepository.java), so this is correct whether or not a tail was actually live.
                 if (character.isNpc()) {
-                    // TEMP GROUND-TRUTH INSTRUMENTATION (GATE SIGN-OFF pass) -- logs ONLY the
-                    // interesting case (a tail was actually live to cancel), matching this project's
-                    // existing convention (RESET_WHILE_LIVE/RESET_POST_CLEAR). Strip surgically,
-                    // NOT via `git checkout --`, recompile, `git diff` after.
+                    // STILL TEMP (B1 disposition, DO.2A instrumentation pass) -- NOT one of the
+                    // four promoted sites; no independent record establishes broad future value
+                    // (zero script consumers, zero later pass citing it as relied-upon evidence,
+                    // per docs/PROJECT_STATE.md grep). Gated for default-OFF consistency with
+                    // every other site this pass touches, but NOT relabeled load-bearing. Strip
+                    // remains owned by the ORIGINAL GATE SIGN-OFF (P.1 CANCEL-AT-ATTACK) pass's own
+                    // strip obligation (never executed), independent of DO.2A's own DO2A_DIAG
+                    // strip-after-run boundary. Logs ONLY the interesting case (a tail was actually
+                    // live to cancel), matching this project's existing convention
+                    // (RESET_WHILE_LIVE/RESET_POST_CLEAR).
                     boolean gtTailWasLive = character.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
                     character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
-                    if (gtTailWasLive) {
+                    if (gtTailWasLive && FLINCH_CERT_TRACE_ENABLED) {
                         System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_CANCELED_ON_ATTACK char=" + character.getIndex()
                                 + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
                         System.out.flush();
