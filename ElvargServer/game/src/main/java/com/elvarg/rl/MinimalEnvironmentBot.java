@@ -865,6 +865,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			if (justReregistered) {
 				// Died since the last reset and its death sequence has fully resolved (isDying() check
 				// above already passed) -- re-register the SAME instance, never a new one.
+				// T7 PLACEMENT/UPDATE-FLAG NORMALIZATION (osrsproject docs/PROJECT_STATE.md section 5.6):
+				// moveTo() above set needsPlacement and resetMovementQueue while this NPC was DEREGISTERED, so
+				// World.process()'s end-of-tick resetUpdating sweep -- which iterates the REGISTERED list only
+				// -- could not clear them on the reset tick, and both would survive into the NPC's first
+				// registered action tick. needsPlacement is the load-bearing one: CombatFactory.addPendingHit()
+				// silently DISCARDS the first post-reset hit while the attacker's cooldown still stamps.
+				// resetMovementQueue has no NPC-side reader today; cleared defensively because it is the second
+				// stale flag produced by the same missed-sweep mechanism. Normalized on the re-registration path
+				// so the SAME instance enters the add queue carrying no stale moveTo() transients. BRANCH-SCOPED
+				// DELIBERATELY: do NOT clear these on the healed-in-place branch below, where the NPC IS
+				// registered and ordinary NPC updating must handle the placement snap itself.
+				target.setNeedsPlacement(false);
+				target.setResetMovementQueue(false);
 				World.getAddNPCQueue().add(target);
 				logger.info("[MinimalEnv] reset: NPC had died, re-registered the SAME instance (no new object created)");
 			} else {
