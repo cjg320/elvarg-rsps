@@ -537,11 +537,34 @@ public class CombatFactory {
 		Mobile attacker = qHit.getAttacker();
 		Mobile target = qHit.getTarget();
 		if (target.getHitpoints() <= 0) {
+			// DO.2A-R OBSERVABILITY (osrsproject docs/PROJECT_STATE.md, DO.2A-R PREREGISTRATION):
+			// this stock early return silently discards an already-executed swing's hit. Trace it
+			// so a missing PENDING_HIT_CREATED is diagnosable instead of invisible. The condition
+			// and the return are UNCHANGED -- this block only observes.
+			if (attacker == com.elvarg.rl.MinimalEnvironmentBot.getInstance() && Combat.FLINCH_CERT_TRACE_ENABLED) {
+				System.out.println("DO2A_DIAG PENDING_HIT_DROPPED reason=TARGET_DEAD attackerIndex=" + attacker.getIndex()
+						+ " targetIndex=" + target.getIndex()
+						+ " targetIsNpc=" + target.isNpc()
+						+ " damage=" + qHit.getTotalDamage());
+				System.out.flush();
+			}
 			return;
 		}
 
 		if (target.isUntargetable() || target.isNeedsPlacement()) {
 			// If target is teleporting or needs placement, don't register the hit
+			// DO.2A-R OBSERVABILITY: same rationale as the TARGET_DEAD trace above. The two halves
+			// of the combined condition are re-read here ONLY to label the reason; the condition
+			// itself and the return are UNCHANGED. This is the branch the T7 defect took.
+			if (attacker == com.elvarg.rl.MinimalEnvironmentBot.getInstance() && Combat.FLINCH_CERT_TRACE_ENABLED) {
+				String gtDropReason = target.isUntargetable() ? "UNTARGETABLE" : "NEEDS_PLACEMENT";
+				System.out.println("DO2A_DIAG PENDING_HIT_DROPPED reason=" + gtDropReason
+						+ " attackerIndex=" + attacker.getIndex()
+						+ " targetIndex=" + target.getIndex()
+						+ " targetIsNpc=" + target.isNpc()
+						+ " damage=" + qHit.getTotalDamage());
+				System.out.flush();
+			}
 			return;
 		}
 

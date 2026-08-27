@@ -352,6 +352,23 @@ public class Combat {
                             + " combatAttackHasBeforeReset=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
                     System.out.flush();
                 }
+                // DO.2A-R INITIATION ANCHOR (osrsproject docs/PROJECT_STATE.md, DO.2A-R PREREGISTRATION):
+                // the PLAYER-side counterpart of the NPC event just above, emitted at the SAME
+                // attack-execution point -- after attackExecutedThisTick, before addPendingHit and before
+                // the COMBAT_ATTACK stamp. PendingHit creation is NOT the initiation event: it sits behind
+                // addPendingHit's stock silent returns (target dead / untargetable / needsPlacement), so a
+                // genuine executed swing can produce no PENDING_HIT_CREATED at all. This event is the
+                // engine's own attack event and is symmetric with the NPC line above, which is what makes
+                // execution ordering comparable between the two parties. General (any non-NPC attacker),
+                // deliberately not bot-scoped. Trace-only: no control flow, no combat semantics, no timer.
+                if (!character.isNpc() && FLINCH_CERT_TRACE_ENABLED) {
+                    System.out.println("FLINCH_FIDELITY_GROUND_TRUTH PLAYER_ATTACK_EXECUTED char=" + character.getIndex()
+                            + " targetIndex=" + target.getIndex()
+                            + " targetIsNpc=" + target.isNpc()
+                            + " hits=" + hits.length
+                            + " combatAttackHasBeforeReset=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
+                    System.out.flush();
+                }
                 for (PendingHit hit : hits) {
                     CombatFactory.addPendingHit(hit);
                 }
