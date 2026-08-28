@@ -776,23 +776,38 @@ public class CombatFactory {
 				System.out.flush();
 			}
 		}
-		if (qHit.getTotalDamage() > 0) {
-			if (target.isNpc()) {
-				Combat targetCombat = target.getCombat();
-				boolean alreadyInFlinchWindow = target.getTimers().has(TimerKey.COMBAT_ATTACK)
-						|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
-						|| targetCombat.isPendingBareExpiry();
-				if (!alreadyInFlinchWindow) {
-					target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
-					if (Combat.FLINCH_CERT_TRACE_ENABLED) {
-						System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARMED delay=" + (CombatFactory.getMethod(target).attackSpeed(target) / 2));
-						System.out.flush();
-					}
-				} else {
-					if (Combat.FLINCH_CERT_TRACE_ENABLED) {
-						System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NOOP (already in window)");
-						System.out.flush();
-					}
+		// H4 RESOLVED-YES -- canonical ruling, docs/PROJECT_STATE.md "FLINCH -- H4 RULING:
+		// CANONICAL RESOLVED-YES -- CONVERGENT-EVIDENCE ADJUDICATION", 9.13 (consequence
+		// authorization 9.13.6, executing the contingent design frozen in 9.8).
+		//
+		// The retaliation-delay ARM is NO LONGER DAMAGE-GATED. It fires for ANY player hit that
+		// reaches executeHit against an out-of-combat NPC -- a zero-damage accuracy miss (blue 0)
+		// included. This block previously sat inside `if (qHit.getTotalDamage() > 0)`, so a miss
+		// opener left the NPC to wake on the next tick instead of arming floor(attackSpeed/2):
+		// exactly the divergence from real OSRS that H4 ruled against.
+		//
+		// UNCHANGED: the B.2 no-op gate (alreadyInFlinchWindow) below -- hitsplats landing inside
+		// an existing window still no-op; FLINCH_IN_COMBAT logic; handleRetaliation and its
+		// Task(1); addPendingHit and its gates; every other damage-conditioned consumer in this
+		// method (Guthans/Amulet-of-Blood-Fury ~:694, Recoil/Vengeance ~:721, notifyLandedHit
+		// ~:813 -- all still require damage > 0); all trace formats. No arena/NPC/scenario
+		// conditional is introduced. NOTE the emission-set change this implies: a dmg=0 hit now
+		// also prints ARMED/NOOP, where before it printed only the HIT ground-truth line.
+		if (target.isNpc()) {
+			Combat targetCombat = target.getCombat();
+			boolean alreadyInFlinchWindow = target.getTimers().has(TimerKey.COMBAT_ATTACK)
+					|| target.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+					|| targetCombat.isPendingBareExpiry();
+			if (!alreadyInFlinchWindow) {
+				target.getTimers().register(TimerKey.COMBAT_ATTACK, CombatFactory.getMethod(target).attackSpeed(target) / 2);
+				if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARMED delay=" + (CombatFactory.getMethod(target).attackSpeed(target) / 2));
+					System.out.flush();
+				}
+			} else {
+				if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+					System.out.println("FLINCH_FIDELITY_GROUND_TRUTH NOOP (already in window)");
+					System.out.flush();
 				}
 			}
 		}
