@@ -3,7 +3,9 @@ package com.elvarg;
 import com.elvarg.game.GameBuilder;
 import com.elvarg.game.GameConstants;
 import com.elvarg.game.World;
+import com.elvarg.game.definition.NpcDefinition;
 import com.elvarg.game.entity.impl.npc.NPC;
+import com.elvarg.game.content.combat.Combat;
 import com.elvarg.game.entity.impl.object.GameObject;
 import com.elvarg.game.entity.impl.object.ObjectManager;
 import com.elvarg.net.NetworkBuilder;
@@ -83,6 +85,37 @@ public class Server {
             // so there's no double-processing), but redundant and worth not doing.
             MinimalEnvironmentBot bot = new MinimalEnvironmentBot(GameConstants.PLAYER_BOTS[0], arena);
             NPC target = NPC.create(arena.npcId, arena.npcSpawn);
+            // ARENA OCCUPANT GROUND TRUTH (osrsproject docs/PROJECT_STATE.md, "FLINCH -- E3: DO.2C
+            // ARENA CAPABILITY"). Emits the LIVE NpcDefinition of the instance this boot actually
+            // spawned, so a preregistration's assumed occupant attributes can be verified against
+            // the running server rather than against npc_defs.json read by hand or against a
+            // design document's own arithmetic. A silently wrong attack speed, size, hitpoint
+            // total or aggression flag would invalidate a frozen timing model with no combat check
+            // able to catch it; this line is the check.
+            //
+            // GENERAL, not DO.2C-specific: it prints whatever occupant the selected arena carries,
+            // for every arena. TRACE-ONLY: no control flow, no combat semantics, no timer, no
+            // mutation of the definition or the NPC. Gated by FLINCH_CERT_TRACE_ENABLED like every
+            // other ground-truth line, so ordinary training runs are unaffected.
+            if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+                NpcDefinition def = target.getDefinition();
+                System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARENA_OCCUPANT arena=" + arena.id
+                        + " npcId=" + arena.npcId
+                        + " name=" + def.getName()
+                        + " hitpoints=" + def.getHitpoints()
+                        + " attackSpeed=" + def.getAttackSpeed()
+                        + " size=" + def.getSize()
+                        + " aggressive=" + def.isAggressive()
+                        + " fightsBack=" + def.doesFightBack()
+                        + " attackable=" + def.isAttackable()
+                        + " maxHit=" + def.getMaxHit()
+                        + " attackLevel=" + def.getStats()[0]
+                        + " strengthLevel=" + def.getStats()[1]
+                        + " defenceLevel=" + def.getStats()[2]
+                        + " spawn=" + arena.npcSpawn
+                        + " index=" + target.getIndex());
+                System.out.flush();
+            }
             World.getAddNPCQueue().add(target);
             bot.setTarget(target);
             // PURSUIT-RACE FIX + PATHFINDING CORRECTION pass (PROJECT_STATE.md section 13): NPC.create()

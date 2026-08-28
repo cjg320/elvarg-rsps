@@ -283,6 +283,26 @@ public final class ArenaDefinition {
             6,
             Collections.emptyList());
 
+    // DO.2C ARENA (osrsproject docs/PROJECT_STATE.md, "FLINCH -- E3: DO.2C ARENA CAPABILITY"):
+    // ARENA_07's exact geometry -- same bot spawn, same NPC spawn tile, same radius 6, zero
+    // obstacles -- with the occupant swapped from Chicken 3661 to Al-Kharid warrior 7323. One
+    // variable changed, the ARENA_02/ARENA_03 precedent. The swap is required by DO.2C's frozen
+    // preregistration: the Chicken's 3 hitpoints make a positive opener kill the target 60% of the
+    // time (max hit 5, damage uniform on {0..5}), which both removes the NPC-side event and
+    // selectively removes the fastest positive hits. Al-Kharid warrior 7323 is non-aggressive, 1x1
+    // (so the stepping-under geometry of section 10 is not engaged at all), attack speed 6 (even --
+    // the RD-4 firewall -- and giving ARM = floor(6/2) = 3), and 19 hitpoints, which makes an
+    // opener kill arithmetically impossible rather than merely rare. NOTHING about combat
+    // semantics, aggression, timing, accuracy or damage changes here: this is an occupant id in a
+    // data-only arena record.
+    public static final ArenaDefinition ARENA_08 = new ArenaDefinition(
+            "ARENA_08",
+            new Location(3089, 3466),
+            7323,
+            new Location(3090, 3466),
+            6,
+            Collections.emptyList());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -298,8 +318,9 @@ public final class ArenaDefinition {
             case "ARENA_05" -> ARENA_05;
             case "ARENA_06" -> ARENA_06;
             case "ARENA_07" -> ARENA_07;
+            case "ARENA_08" -> ARENA_08;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, or ARENA_07)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, or ARENA_08)");
         };
     }
 
@@ -327,8 +348,9 @@ public final class ArenaDefinition {
             case "ARENA_05" -> ARENA_05;
             case "ARENA_06" -> ARENA_06;
             case "ARENA_07" -> ARENA_07;
+            case "ARENA_08" -> ARENA_08;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, or ARENA_07)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, or ARENA_08)");
         };
     }
 
