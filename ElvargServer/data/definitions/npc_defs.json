@@ -168111,7 +168111,7 @@
     "respawn": 25,
     "maxHit": 2,
     "hitpoints": 19,
-    "attackSpeed": 6,
+    "attackSpeed": 4,
     "attackAnim": -1,
     "defenceAnim": -1,
     "deathAnim": 836,
