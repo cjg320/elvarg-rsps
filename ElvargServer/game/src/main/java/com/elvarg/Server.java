@@ -112,6 +112,9 @@ public class Server {
                         + " attackLevel=" + def.getStats()[0]
                         + " strengthLevel=" + def.getStats()[1]
                         + " defenceLevel=" + def.getStats()[2]
+                        + " rangedLevel=" + def.getStats()[3]
+                        + " magicLevel=" + def.getStats()[4]
+                        + " combatLevel=" + def.getCombatLevel()
                         + " spawn=" + arena.npcSpawn
                         + " index=" + target.getIndex());
                 System.out.flush();
