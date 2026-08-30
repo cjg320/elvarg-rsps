@@ -8,6 +8,7 @@ import com.elvarg.game.entity.impl.npc.NPC;
 import com.elvarg.game.content.combat.Combat;
 import com.elvarg.game.entity.impl.object.GameObject;
 import com.elvarg.game.entity.impl.object.ObjectManager;
+import com.elvarg.game.model.Location;
 import com.elvarg.net.NetworkBuilder;
 import com.elvarg.net.NetworkConstants;
 import com.elvarg.plugin.event.EventManager;
@@ -143,6 +144,44 @@ public class Server {
                 ObjectManager.register(object, true);
                 logger.info("[Server] registered arena obstacle: id=" + obstacle.objectId
                         + " loc=" + obstacle.location + " dir=" + obstacle.direction);
+                // E5 BLOCKER VERIFICATION (trace-only, gated, general): report whether the
+                // registered obstacle actually clips its own tile. A type >= 9 object only receives
+                // full-tile clipping when its ObjectDefinition is solid, so an arena could silently
+                // place a non-blocking "blocker" with no other symptom. This line makes that
+                // verifiable from ground truth for ANY arena obstacle; it has no control flow.
+                if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+                    System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARENA_OBSTACLE arena=" + arena.id
+                            + " objectId=" + obstacle.objectId
+                            + " type=" + obstacle.type
+                            + " dir=" + obstacle.direction
+                            + " loc=" + obstacle.location
+                            + " sizeX=" + com.elvarg.game.definition.ObjectDefinition.forId(
+                                    obstacle.objectId).getSizeX()
+                            + " sizeY=" + com.elvarg.game.definition.ObjectDefinition.forId(
+                                    obstacle.objectId).getSizeY()
+                            + " solid=" + com.elvarg.game.definition.ObjectDefinition.forId(
+                                    obstacle.objectId).solid
+                            + " tileBlocked=" + com.elvarg.game.collision.RegionManager.blocked(
+                                    obstacle.location, null));
+                    // A blocker only MEANS anything relative to its surroundings: an arena whose
+                    // "open" flanking tiles are actually blocked by real map scenery would silently
+                    // change what the arena poses. Dump the radius-2 static clip neighbourhood so
+                    // the surroundings are ground truth rather than an assumption. 'B' = blocked,
+                    // '.' = open, 'X' = the obstacle tile itself. Rows print north-to-south.
+                    for (int dy = 2; dy >= -2; dy--) {
+                        StringBuilder row = new StringBuilder();
+                        for (int dx = -2; dx <= 2; dx++) {
+                            Location t = obstacle.location.clone().add(dx, dy);
+                            row.append(dx == 0 && dy == 0 ? 'X'
+                                    : com.elvarg.game.collision.RegionManager.blocked(t, null) ? 'B' : '.');
+                        }
+                        System.out.println("FLINCH_FIDELITY_GROUND_TRUTH ARENA_OBSTACLE_NEIGHBOURHOOD arena="
+                                + arena.id + " y=" + (obstacle.location.getY() + dy) + " x="
+                                + (obstacle.location.getX() - 2) + ".." + (obstacle.location.getX() + 2)
+                                + " " + row);
+                    }
+                    System.out.flush();
+                }
             }
 
             new MinimalSocketServer(7070).start();

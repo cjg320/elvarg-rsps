@@ -8,6 +8,7 @@ import java.util.List;
 import com.elvarg.game.World;
 import com.elvarg.game.collision.RegionManager;
 import com.elvarg.game.content.Dueling;
+import com.elvarg.game.content.combat.Combat;
 import com.elvarg.game.content.combat.CombatFactory;
 import com.elvarg.game.content.combat.method.CombatMethod;
 import com.elvarg.game.entity.impl.Mobile;
@@ -15,6 +16,7 @@ import com.elvarg.game.entity.impl.npc.NPC;
 import com.elvarg.game.entity.impl.player.Player;
 import com.elvarg.game.model.Direction;
 import com.elvarg.game.model.Location;
+import com.elvarg.game.model.areas.impl.PrivateArea;
 import com.elvarg.game.model.Skill;
 import com.elvarg.game.model.movement.path.PathFinder;
 import com.elvarg.game.model.movement.path.RS317PathFinder;
@@ -598,61 +600,37 @@ public final class MovementQueue {
                     return;
                 }
 
-                int deltaX = destination.getX() - current.getX();
-                int deltaY = destination.getY() - current.getY();
-                if (deltaX < -1) {
-                    deltaX = -1;
-                } else if (deltaX > 1) {
-                    deltaX = 1;
-                }
-                if (deltaY < -1) {
-                    deltaY = -1;
-                } else if (deltaY > 1) {
-                    deltaY = 1;
-                }
-                Direction direction = Direction.fromDeltas(deltaX, deltaY);
+                // E5 -- OSRS DUMB-TRAVELLER STEP SELECTION (R1-R4). See PursuitStep's javadoc and
+                // docs/PROJECT_STATE.md "E5 -- NPC COMBAT-PURSUIT FIDELITY" for the frozen rules and
+                // their evidence tiers. The previous code clamped the delta to one step and, on a
+                // blocked diagonal, tried ONE fallback axis -- which let an NPC round a 1x1 blocker
+                // in a single tick and reach a player on the perpendicular tile, contradicting the
+                // documented OSRS safespot. R1-R4 are general to every NPC and carry no orientation,
+                // pillar, safespot or flinch special-case: the STUCK/FLANK asymmetry is emergent.
+                // Legality is ordinary static clipping, unchanged (R4); entity collision is
+                // deliberately NOT consulted for step selection.
+                final Location stepFrom = current;
+                final int pursuitSize = size;
+                final PrivateArea pursuitArea = character.getPrivateArea();
+                Direction direction = PursuitStep.next(
+                        destination.getX() - current.getX(),
+                        destination.getY() - current.getY(),
+                        d -> RegionManager.canMove(stepFrom, d, pursuitSize, pursuitArea));
 
-                switch (direction) {
-                    case NORTH_WEST:
-                        if (RegionManager.canMove(current, Direction.WEST, size, character.getPrivateArea())) {
-                            direction = Direction.WEST;
-                        } else if (RegionManager.canMove(current, Direction.NORTH, size, character.getPrivateArea())) {
-                            direction = Direction.NORTH;
-                        } else {
-                            direction = Direction.NONE;
-                        }
-                        break;
-                    case NORTH_EAST:
-                        if (RegionManager.canMove(current, Direction.NORTH, size, character.getPrivateArea())) {
-                            direction = Direction.NORTH;
-                        } else if (RegionManager.canMove(current, Direction.EAST, size, character.getPrivateArea())) {
-                            direction = Direction.EAST;
-                        } else {
-                            direction = Direction.NONE;
-                        }
-                        break;
-                    case SOUTH_WEST:
-                        if (RegionManager.canMove(current, Direction.WEST, size, character.getPrivateArea())) {
-                            direction = Direction.WEST;
-                        } else if (RegionManager.canMove(current, Direction.SOUTH, size, character.getPrivateArea())) {
-                            direction = Direction.SOUTH;
-                        } else {
-                            direction = Direction.NONE;
-                        }
-                        break;
-                    case SOUTH_EAST:
-                        if (RegionManager.canMove(current, Direction.EAST, size, character.getPrivateArea())) {
-                            direction = Direction.EAST;
-                        } else if (RegionManager.canMove(current, Direction.SOUTH, size, character.getPrivateArea())) {
-                            direction = Direction.SOUTH;
-                        } else {
-                            direction = Direction.NONE;
-                        }
-                        break;
-                    default:
-                        break;
+                // PURSUIT-STEP TRACE (gated, print-only, no control flow). Records the engine's OWN
+                // step decision -- the inputs R1-R4 saw and the direction they returned. Position
+                // sequences alone cannot distinguish "the traveller chose to stand still" from "the
+                // traveller was never asked": an NPC that has dropped combat-following also stops
+                // moving. This line separates those two, which is exactly what a pursuit-fidelity
+                // claim rests on.
+                if (Combat.FLINCH_CERT_TRACE_ENABLED) {
+                    System.out.println("FLINCH_FIDELITY_GROUND_TRUTH PURSUIT_STEP npc=" + character.getIndex()
+                            + " from=" + current + " to=" + destination
+                            + " dx=" + (destination.getX() - current.getX())
+                            + " dy=" + (destination.getY() - current.getY())
+                            + " chose=" + direction);
+                    System.out.flush();
                 }
-
                 if (direction == Direction.NONE) {
                     return;
                 }

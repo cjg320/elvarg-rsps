@@ -371,7 +371,19 @@ public class CombatFactory {
 	 *                  same asymmetric timing {@code canReach()} always used).
 	 */
 	public static MeleeReachResult meleeReach(Mobile attacker, Mobile target, int distance, boolean isMoving) {
-		if (attacker.size() == 1 && target.size() == 1 && !isMoving && !target.getMovementQueue().isMoving()
+		// E5 / D4 CONFIRMED (docs/PROJECT_STATE.md "E5 -- NPC COMBAT-PURSUIT FIDELITY"): the
+		// diagonal exclusion is NO LONGER gated on motion. It previously read
+		// `!isMoving && !target.getMovementQueue().isMoving()` -- both of which are the TARGET's
+		// flag -- so whenever the target had moved on the preceding tick the OSRS plus-reach rule
+		// was skipped entirely and an NPC could melee a player standing on a diagonal tile.
+		// Demonstrated live on E4 at identical geometry: bot (3089,3467) vs NPC (3090,3466) read
+		// reachable=true on the tick the bot moved and reachable=false on the very next tick with
+		// both entities stationary, and an attack executed on the moving tick. Standard melee
+		// reach in OSRS is the orthogonal plus at the attack tick regardless of motion (OSRS Wiki
+		// Attack range / Aggressiveness; the project's own sim encodes it at sim/grid.py:55-64).
+		// Scoped to size-1 vs size-1, exactly as before -- N x N reach semantics are untouched and
+		// are NOT certified by E5.
+		if (attacker.size() == 1 && target.size() == 1
 				&& PathFinder.isDiagonalLocation(attacker, target)) {
 			return MeleeReachResult.DIAGONAL;
 		}

@@ -4,6 +4,7 @@ import com.elvarg.game.entity.impl.object.GameObject;
 import com.elvarg.game.entity.impl.object.ObjectManager;
 import com.elvarg.game.model.Location;
 
+import com.elvarg.game.definition.ObjectDefinition;
 import java.util.Collections;
 import java.util.List;
 
@@ -303,6 +304,73 @@ public final class ArenaDefinition {
             6,
             Collections.emptyList());
 
+    // E5 CERTIFICATION ARENAS (osrsproject docs/PROJECT_STATE.md, "E5 -- NPC COMBAT-PURSUIT
+    // FIDELITY"). Four arenas sharing ONE 1x1 full-tile blocking object, differing only in which
+    // side of it the NPC spawns on and which perpendicular tile the player stands on. They exist to
+    // pose the four-orientation traveller consequence live; the STUCK/FLANK asymmetry is an EMERGENT
+    // property of PursuitStep's R1-R4 plus ordinary clipping, and NOTHING here (or anywhere else)
+    // special-cases orientation, pillars, safespots or flinching.
+    //
+    // The blocker is a GENERIC capability: ObstacleSpec already carries an object type, and
+    // RegionManager.addObjectClipping() routes type >= 9 with a solid definition to
+    // addClippingForSolidObject(), which sets the full-tile clip bit over the object's footprint.
+    // Any arena may now place one; there is no combat coupling.
+    private static final int BLOCKER_TYPE = 10;              // full-tile object, not a wall edge
+    private static final int BLOCKER_OBJECT_ID = 1;          // "Crate": 1x1 and solid (asserted)
+    // (3096,3453) is the centre of a 5x5 block whose 25 tiles were all verified OPEN from live
+    // ground truth (the ARENA_OBSTACLE_NEIGHBOURHOOD clip dump) BEFORE these arenas were fixed. An
+    // earlier candidate next to ARENA_08 was discarded on that evidence: real Al-Kharid scenery
+    // already blocked several of the tiles the table depends on, which would have made the arms
+    // differ by map furniture instead of by orientation. The blocker below is therefore the ONLY
+    // blocked tile anywhere in the geometry these four arms use.
+    private static final Location E5_PILLAR = new Location(3096, 3453, 0);
+
+    private static List<ObstacleSpec> e5Blocker() {
+        return List.of(tileBlocker(BLOCKER_OBJECT_ID, E5_PILLAR));
+    }
+
+    /**
+     * Generic 1x1 full-tile blocker for any arena: places {@code objectId} at {@code where} as a
+     * type-10 solid object, which {@code RegionManager.addObjectClipping()} routes to
+     * {@code addClippingForSolidObject()} so the tile carries the full-block bit.
+     *
+     * <p>The 1x1 check is NOT decoration. That routine clips
+     * {@code def.getSizeX() x def.getSizeY()} tiles, not one, so an id whose definition is larger
+     * silently blocks a bigger footprint and quietly changes the geometry every arena using it
+     * poses. That is not hypothetical: this capability was first written against an id that turned
+     * out to be 2x2, which blocked three neighbouring tiles and invalidated the arenas built on it.
+     * Failing loudly at registration is the difference between a caught mistake and a wrong result.
+     */
+    public static ObstacleSpec tileBlocker(int objectId, Location where) {
+        ObjectDefinition def = ObjectDefinition.forId(objectId);
+        if (def == null || !def.solid) {
+            throw new IllegalArgumentException(
+                    "tileBlocker: object " + objectId + " has no solid definition, so it would not clip");
+        }
+        if (def.getSizeX() != 1 || def.getSizeY() != 1) {
+            throw new IllegalArgumentException("tileBlocker: object " + objectId + " is "
+                    + def.getSizeX() + "x" + def.getSizeY() + ", not 1x1; it would block "
+                    + (def.getSizeX() * def.getSizeY()) + " tiles");
+        }
+        return new ObstacleSpec(objectId, where, BLOCKER_TYPE, 0);
+    }
+
+    /** NPC WEST of the blocker, player SOUTH of it -> R2's X-step runs into the blocker (STUCK). */
+    public static final ArenaDefinition ARENA_09W = new ArenaDefinition(
+            "ARENA_09W", new Location(3096, 3452), 7323, new Location(3095, 3453), 6, e5Blocker());
+
+    /** NPC EAST of the blocker, player SOUTH of it -> R2's X-step runs into the blocker (STUCK). */
+    public static final ArenaDefinition ARENA_09E = new ArenaDefinition(
+            "ARENA_09E", new Location(3096, 3452), 7323, new Location(3097, 3453), 6, e5Blocker());
+
+    /** NPC NORTH of the blocker, player EAST of it -> R2's X-step is sideways and open (FLANK). */
+    public static final ArenaDefinition ARENA_09N = new ArenaDefinition(
+            "ARENA_09N", new Location(3097, 3453), 7323, new Location(3096, 3454), 6, e5Blocker());
+
+    /** NPC SOUTH of the blocker, player EAST of it -> R2's X-step is sideways and open (FLANK). */
+    public static final ArenaDefinition ARENA_09S = new ArenaDefinition(
+            "ARENA_09S", new Location(3097, 3453), 7323, new Location(3096, 3452), 6, e5Blocker());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -319,8 +387,12 @@ public final class ArenaDefinition {
             case "ARENA_06" -> ARENA_06;
             case "ARENA_07" -> ARENA_07;
             case "ARENA_08" -> ARENA_08;
+            case "ARENA_09W" -> ARENA_09W;
+            case "ARENA_09E" -> ARENA_09E;
+            case "ARENA_09N" -> ARENA_09N;
+            case "ARENA_09S" -> ARENA_09S;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, or ARENA_08)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, or ARENA_09W/E/N/S)");
         };
     }
 
@@ -349,8 +421,12 @@ public final class ArenaDefinition {
             case "ARENA_06" -> ARENA_06;
             case "ARENA_07" -> ARENA_07;
             case "ARENA_08" -> ARENA_08;
+            case "ARENA_09W" -> ARENA_09W;
+            case "ARENA_09E" -> ARENA_09E;
+            case "ARENA_09N" -> ARENA_09N;
+            case "ARENA_09S" -> ARENA_09S;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, or ARENA_08)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, or ARENA_09W/E/N/S)");
         };
     }
 
