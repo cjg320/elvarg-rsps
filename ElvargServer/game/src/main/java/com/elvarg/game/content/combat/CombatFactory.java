@@ -329,7 +329,23 @@ public class CombatFactory {
 			// perform (side-effect-free by design, so telemetry reads can call it safely).
 			MeleeReachResult reachResult = meleeReach(attacker, target, distance, isMoving);
 			if (reachResult == MeleeReachResult.DIAGONAL) {
-				stepOut(attacker, target);
+				// E6 MOVEMENT-QUEUE COHERENCE (docs/PROJECT_STATE.md, "E6 -- NPC COMBAT-PURSUIT
+				// MOVEMENT-QUEUE COHERENCE"). stepOut() paths the attacker to the NEAREST unblocked
+				// orthogonally-adjacent tile of the target using the full PathFinder. For an NPC
+				// whose combat movement is owned by the basic traveller that is a SECOND, competing
+				// mover: it enqueues a point the traveller never authorised, which then drains on a
+				// later tick and overrides the traveller's current decision. Proven live at E5 --
+				// STEP_OUT queued (3095,3452) on the same tick PURSUIT_STEP chose NONE for that
+				// geometry, and the NPC walked into melee range of a documented safespot.
+				//
+				// It is skipped for pursuit-owned NPCs ONLY. This is not a safespot, pillar, NPC or
+				// arena special case: the predicate is exactly the one MovementQueue uses to decide
+				// that the traveller owns this NPC's feet, so approach is decided in one place.
+				// PLAYERS are untouched -- auto-pathing to a legal tile when a player attacks
+				// diagonally is correct behaviour and remains.
+				if (!pursuitOwnsMovement(attacker)) {
+					stepOut(attacker, target);
+				}
 				return false;
 			}
 			return reachResult == MeleeReachResult.REACHABLE;
@@ -444,6 +460,20 @@ public class CombatFactory {
 		return meleeReach(attacker, target, distance, targetMoving) == MeleeReachResult.REACHABLE;
 	}
 
+
+	/**
+	 * Whether this mobile's combat movement is owned by the basic combat-pursuit traveller
+	 * ({@code PursuitStep}, E5 R1-R4) rather than by route pathfinding.
+	 *
+	 * <p>Deliberately the SAME predicate {@code MovementQueue.processCombatFollowing()} uses to
+	 * select its {@code basicPathing} branch, so ownership cannot drift between the two files. With
+	 * {@code NPC.canUsePathFinding()} currently hardcoded false, this is true for every NPC today --
+	 * stated plainly rather than left implicit, since it means {@code stepOut()} is now unreachable
+	 * for NPCs and reachable only for players.
+	 */
+	public static boolean pursuitOwnsMovement(Mobile mobile) {
+		return mobile.isNpc() && !((NPC) mobile).canUsePathFinding();
+	}
 
 	private static void stepOut(Mobile attacker, Mobile target) {
 		List<Location> tiles = Arrays.asList(

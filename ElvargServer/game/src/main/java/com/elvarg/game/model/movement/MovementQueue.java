@@ -579,6 +579,31 @@ public final class MovementQueue {
             // Handle simple walking to the destination for NPCs which don't use pathfinding.
             if (basicPathing) {
 
+                // E6 MOVEMENT-QUEUE COHERENCE (docs/PROJECT_STATE.md, "E6 -- NPC COMBAT-PURSUIT
+                // MOVEMENT-QUEUE COHERENCE"). THE FROZEN INVARIANT: when combat pursuit owns this
+                // NPC's movement for a tick, the movement actually executed must be coherent with
+                // the CURRENT traveller decision for the CURRENT geometry.
+                //
+                // process() drains `points` unconditionally after calling this method, and the
+                // Direction.NONE path below simply returns -- so without this clear, a point
+                // authorised under an EARLIER geometry survives and drains anyway, physically moving
+                // the NPC on a tick the traveller refused to move it. That is exactly how a
+                // documented OSRS safespot was defeated at E5 while PursuitStep was choosing NONE.
+                //
+                // Discarding here rather than "keeping at most one point" is the point: OSRS's dumb
+                // traveller holds NO persisted movement intent. It decides one step per tick from
+                // the current deltas and executes it that tick. Anything still queued is by
+                // definition intent from a geometry that no longer exists, so the fresh decision --
+                // including the decision to stand still -- fully replaces it.
+                //
+                // Scoped to the pursuit-owned branch: it runs only while combatFollowing is set and
+                // the NPC uses the basic traveller, so retreat-to-spawn routing, coordinator wander
+                // and ordinary non-combat walking are untouched.
+                final int stalePoints = points.size();
+                if (stalePoints > 0) {
+                    points.clear();
+                }
+
                 // Same spot, step away.
                 if (destination.equals(current) && !following.getMovementQueue().isMoving()
                         && character.size() == 1 && following.size() == 1) {
@@ -628,7 +653,9 @@ public final class MovementQueue {
                             + " from=" + current + " to=" + destination
                             + " dx=" + (destination.getX() - current.getX())
                             + " dy=" + (destination.getY() - current.getY())
-                            + " chose=" + direction);
+                            + " chose=" + direction
+                            + " staleCleared=" + stalePoints
+                            + " queueAfterDecision=" + (direction == Direction.NONE ? 0 : 1));
                     System.out.flush();
                 }
                 if (direction == Direction.NONE) {
