@@ -105,6 +105,32 @@ public class Combat {
     private boolean pendingBareExpiry;
     private boolean combatAttackActiveLastCheck;
 
+    // E7 POST-RETALIATION COMBAT TERMINATION (osrsproject docs/PROJECT_STATE.md, "E7"): the exact
+    // counterpart of combatAttackActiveLastCheck, for the in-combat tail instead of the ordinary
+    // cooldown, and for the same source-pinned reason -- TimerRepository has no expiry callback
+    // (process() only calls tick() then remove()), so "the tail just finished its countdown" is
+    // detectable ONLY by comparing against what was live at the end of the previous resolution.
+    //
+    // It must distinguish a NATURAL COUNTDOWN COMPLETION from a CANCELLATION. Cancellation happens
+    // at exactly two sites -- an attack execution (performNewAttack's isNpc cancel block) and
+    // reset() -- and BOTH clear this latch, so a cancelled tail can never be misread as a
+    // completion on a later tick. That matters because an attack can arrive OUT OF ORDER, from a
+    // Task running in TaskManager.process(), which World.process() runs BEFORE npc.process() on the
+    // same tick: without clearing at the cancel site, the execution's own fresh COMBAT_ATTACK stamp
+    // would be followed by a spurious termination that wiped the interaction it just continued.
+    private boolean tailActiveLastCheck;
+
+    /**
+     * E7: record that the tail ended by CANCELLATION rather than by completing its countdown, so
+     * the completion check in {@link #process()} cannot later mistake it for a completion. Both
+     * production cancel sites route through here, which is what keeps the two in step; it is
+     * package-private so the deterministic verifier can drive the same semantics the engine uses,
+     * rather than a replica of them.
+     */
+    void markTailCancelled() {
+        tailActiveLastCheck = false;
+    }
+
     /** Trainer-privileged, deployment-honest read of {@link #attackExecutedThisTick} -- see that
      * field's own doc. Consumed by MinimalEnvironmentBot's payload builder only. */
     public boolean attackExecutedThisTick() {
@@ -168,6 +194,42 @@ public class Combat {
         // load-bearing (source-pinned, not stylistic).
         boolean combatAttackRunningNow = character.getTimers().has(TimerKey.COMBAT_ATTACK);
         pendingBareExpiry = combatAttackActiveLastCheck && !combatAttackRunningNow;
+
+        // E7 POST-RETALIATION COMBAT TERMINATION (osrsproject docs/PROJECT_STATE.md, "E7"): a tail
+        // that has finished its countdown ends the offensive interaction that armed it, so a stale
+        // interaction can no longer attack the instant reach is regained. Placed here, at the top
+        // of the combat barrier, because getTimers().process() already ran this tick (NPC.java:197
+        // before :210) -- so the completion is observable now, BEFORE this tick's own
+        // performNewAttack() could act on it, which is the whole point of the correction.
+        //
+        // WHY THIS IS THE OUT-OF-RANGE CONDITION AND NOT A BARE "TIMER HIT ZERO" RULE: within this
+        // engine a tail that survives to completion ALREADY entails that no tick occurred on which
+        // the NPC was entitled and able to attack. The tail is armed only by resolveBareExpiry(),
+        // on a COMBAT_ATTACK expiry with no execution; COMBAT_ATTACK is re-registered only by an
+        // execution (below) or by the flinch ARM, which no-ops while a tail is live -- so the
+        // ordinary cooldown is ABSENT for the tail's whole span. With the cooldown absent and a
+        // target set, performNewAttack() executes on the first tick canReach() succeeds, and that
+        // execution CANCELS the tail. A completed tail therefore cannot coexist with a tick on
+        // which the player was validly attackable. The condition is structural, which is why no
+        // geometry, reach coordinate, flinch state or scenario identity is tested here.
+        //
+        // reset() is the engine's OWN general disengagement primitive, already used by
+        // CombatFactory.canReach() for the leash and invalid-target cases; E7 reuses it rather than
+        // inventing a second notion of "combat over". It is character-scoped and touches neither
+        // NpcAggression nor the player's own combat -- an independent aggression subsystem may
+        // still legitimately reacquire afterward, which E7 neither suppresses nor certifies.
+        if (character.isNpc() && tailActiveLastCheck
+                && !character.getTimers().has(TimerKey.FLINCH_IN_COMBAT)
+                && target != null) {
+            if (FLINCH_CERT_TRACE_ENABLED) {
+                System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_COMPLETED_COMBAT_TERMINATED char="
+                        + character.getIndex()
+                        + " terminatedTargetIndex=" + target.getIndex()
+                        + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
+                System.out.flush();
+            }
+            reset();
+        }
 
         // Process the hit queue
         hitQueue.process(character);
@@ -277,6 +339,10 @@ public class Combat {
         }
         pendingBareExpiry = false;
         combatAttackActiveLastCheck = character.getTimers().has(TimerKey.COMBAT_ATTACK);
+        // E7: same end-of-resolution snapshot, for the tail. Taken AFTER the arm above, so a tail
+        // armed on this very tick is remembered as live. resolveBareExpiry() is called on every
+        // process() exit path, which is what makes this latch complete.
+        tailActiveLastCheck = character.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
     }
 
     /**
@@ -402,6 +468,12 @@ public class Combat {
                     // (RESET_WHILE_LIVE/RESET_POST_CLEAR).
                     boolean gtTailWasLive = character.getTimers().has(TimerKey.FLINCH_IN_COMBAT);
                     character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
+                    // E7 CANCEL SITE 1 of 2: this is a CANCELLATION, never a countdown completion,
+                    // so the completion latch is cleared here. Load-bearing for the out-of-order
+                    // path -- an attack executed from a TaskManager task runs before npc.process()
+                    // on the same tick, and without this the next process() would read the cancel
+                    // as a completion and terminate the interaction this execution just continued.
+                    markTailCancelled();
                     if (gtTailWasLive && FLINCH_CERT_TRACE_ENABLED) {
                         System.out.println("FLINCH_FIDELITY_GROUND_TRUTH TAIL_CANCELED_ON_ATTACK char=" + character.getIndex()
                                 + " combatAttackHas=" + character.getTimers().has(TimerKey.COMBAT_ATTACK));
@@ -522,6 +594,11 @@ public class Combat {
         character.getTimers().cancel(TimerKey.FLINCH_IN_COMBAT);
         pendingBareExpiry = false;
         combatAttackActiveLastCheck = false;
+        // E7 CANCEL SITE 2 of 2: reset() cancels the tail outright, so it is a cancellation and not
+        // a countdown completion. Clearing the latch here also makes E7's own termination
+        // idempotent: a second processing pass cannot re-fire it, and an externally-driven reset
+        // (episode boundary, leash, invalid target) cannot be misread as a completion later.
+        markTailCancelled();
         // GATE SIGN-OFF R-A (S.6's own secondary finding, docs/PROJECT_STATE.md): under the
         // generalized design a leftover mid-cooldown COMBAT_ATTACK surviving an episode reset could
         // later expire naturally in the NEW episode and arm a tail attributable to the PREVIOUS
