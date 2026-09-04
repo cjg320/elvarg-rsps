@@ -202,7 +202,7 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * a stale v6 client silently lacks the signal wire_enemy_cadence's derivation needs, so this
 	 * forces it to confront the change explicitly rather than silently deriving from nothing.
 	 */
-	private static final int PROTOCOL_VERSION = 7;
+	private static final int PROTOCOL_VERSION = 8;
 
 	/**
 	 * S2-HF1 B2 server-side parity layer: count of scenario-baseline stat mismatches seen at
@@ -1223,6 +1223,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// see that method's own comment) would show as 2+ here, visible in every per-step log
 				// going forward, same monitoring-only convention as max_melee_hit.
 				+ ",\"npc_instance_count\":" + countNpcInstances(target.getId())
+				// S2-HF1 STAT-PARITY HARNESS REPAIR: the bot's CURRENT max HP, so the Python side never
+				// has to assume one. agent/elvarg_socket_env.py hardcoded BOT_MAX_HP = 32 to rescale
+				// hp_fraction deltas back into HP points; the bot levelled to 72 across one 500k-step run
+				// and that reconstruction silently under-reported incoming damage by 32/M, drifting the
+				// damage-taken reward scale within the run. Carrying the real value makes the
+				// reconstruction exact at any level.
+				//
+				// Now that performReset() re-asserts the scenario baseline every episode this reads a
+				// CONSTANT, which is the stronger design: the field is a TRIPWIRE rather than a scale
+				// input -- any value other than the scenario baseline means the parity repair regressed.
+				// Monitoring-only, exactly like max_melee_hit and npc_instance_count above: it occupies no
+				// FIELD_ORDER slot and must never reach the observation vector.
+				+ ",\"bot_max_hp\":" + this.getSkillManager().getMaxLevel(Skill.HITPOINTS)
 				// THREAD 2a RESPACE (docs/PROJECT_STATE.md "THREAD 2a DESIGN" record): the flinch
 				// sense's RAW counter -- emitted unnormalized; agent/elvarg_socket_env.py applies
 				// clip01(t / 10.0) Python-side (this class's own SENSE_SATURATION_TICKS, matched by
