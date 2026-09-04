@@ -211,6 +211,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 */
 	private int statParityMismatches = 0;
 
+	/**
+	 * S2-HF1 B2: count of resets that arrived carrying ANY departure from the scenario
+	 * baseline (experience or level). Expected to be non-zero -- XP accrues within an
+	 * episode -- and is what makes a passing parity verification non-vacuous.
+	 */
+	private int statDriftObservations = 0;
+
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
 
@@ -741,6 +748,34 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// interface handling is touched, no combat mechanic changes, and no stock player is
 			// affected -- this method runs only for MinimalEnvironmentBot.
 			final int[] baselineStats = this.getDefinition().getFighterPreset().getItemPreset().getStats();
+			// S2-HF1 B2 SERVER-SIDE PARITY LAYER, PART 1 OF 2 -- OBSERVE THE DRIFT BEFORE UNDOING IT.
+			//
+			// This runs BEFORE the re-assertion below, and that ordering is the whole point. An assertion
+			// placed only AFTER the re-assertion verifies its own write and can never fail, which makes a
+			// passing verification vacuous. Reading the state as it ARRIVES is what produces evidence that
+			// growth genuinely occurred and was genuinely removed.
+			//
+			// STAT_DRIFT_OBSERVED IS EXPECTED, NOT AN ALARM. Experience accumulates within an episode
+			// (~80 HITPOINTS xp and ~114 ATTACK xp per full kill here, after the x6 multiplier), so the
+			// XP component fires on essentially every reset. A LEVEL differing from baseline is the
+			// stronger signal: it means growth survived a previous reset, which is the defect itself.
+			for (int i = 0; i < baselineStats.length; i++) {
+				final Skill driftSkill = Skill.values()[i];
+				final int wantLevel = baselineStats[i];
+				final int wantExp = SkillManager.getExperienceForLevel(wantLevel);
+				final int haveMax = this.getSkillManager().getMaxLevel(driftSkill);
+				final int haveCur = this.getSkillManager().getCurrentLevel(driftSkill);
+				final int haveExp = this.getSkillManager().getExperience(driftSkill);
+				if (haveMax != wantLevel || haveCur != wantLevel || haveExp != wantExp) {
+					statDriftObservations++;
+					logger.info("[MinimalEnv] STAT_DRIFT_OBSERVED skill=" + driftSkill
+							+ " wantLevel=" + wantLevel + " maxLevel=" + haveMax
+							+ " currentLevel=" + haveCur
+							+ " wantExp=" + wantExp + " exp=" + haveExp
+							+ " levelDrifted=" + (haveMax != wantLevel || haveCur != wantLevel)
+							+ " totalObservations=" + statDriftObservations);
+				}
+			}
 			for (int i = 0; i < baselineStats.length; i++) {
 				final Skill baselineSkill = Skill.values()[i];
 				final int baselineLevel = baselineStats[i];
@@ -749,7 +784,8 @@ public class MinimalEnvironmentBot extends PlayerBot {
 						.setMaxLevel(baselineSkill, baselineLevel)
 						.setExperience(baselineSkill, SkillManager.getExperienceForLevel(baselineLevel));
 			}
-			// S2-HF1 B2 SERVER-SIDE PARITY LAYER: monitoring only -- log and count on a mismatch, NEVER
+			// S2-HF1 B2 SERVER-SIDE PARITY LAYER, PART 2 OF 2 -- VERIFY THE UNDO.
+			// Monitoring only -- log and count on a mismatch, NEVER
 			// throw. ATTACK parity is not observable on the wire (no payload field carries it, and
 			// adding one would expose a quantity the policy must never see), so this assertion is the
 			// only layer that covers it. A regression must be visible in the server log, not silent.
