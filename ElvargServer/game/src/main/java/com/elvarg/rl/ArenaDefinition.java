@@ -371,6 +371,17 @@ public final class ArenaDefinition {
     public static final ArenaDefinition ARENA_09S = new ArenaDefinition(
             "ARENA_09S", new Location(3097, 3453), 7323, new Location(3096, 3452), 6, e5Blocker());
 
+    /**
+     * S2-K2-SCREEN-B PART 3.1: ARENA_09W's EXACT geometry -- same botSpawn (3096,3452), same
+     * npcSpawn (3095,3453), same radius 6, same e5Blocker() obstacle set -- with the occupant
+     * swapped 7323 (Al-Kharid warrior) -> 3446 (Guardian of Armadyl, REFDATA.1 id 3446, version
+     * "Female"). The occupant is the ONLY variable changed from ARENA_09W; ARENA_09W itself is
+     * untouched. combatFollowDistance is 7 for 3446, the same as 7323's, so npcCoordinatorRadius=6
+     * carries over under the ARENA_01 precedent reasoning, unchanged.
+     */
+    public static final ArenaDefinition ARENA_10W = new ArenaDefinition(
+            "ARENA_10W", new Location(3096, 3452), 3446, new Location(3095, 3453), 6, e5Blocker());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -391,8 +402,9 @@ public final class ArenaDefinition {
             case "ARENA_09E" -> ARENA_09E;
             case "ARENA_09N" -> ARENA_09N;
             case "ARENA_09S" -> ARENA_09S;
+            case "ARENA_10W" -> ARENA_10W;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, or ARENA_09W/E/N/S)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, or ARENA_10W)");
         };
     }
 
@@ -425,8 +437,9 @@ public final class ArenaDefinition {
             case "ARENA_09E" -> ARENA_09E;
             case "ARENA_09N" -> ARENA_09N;
             case "ARENA_09S" -> ARENA_09S;
+            case "ARENA_10W" -> ARENA_10W;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, or ARENA_09W/E/N/S)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, or ARENA_10W)");
         };
     }
 
