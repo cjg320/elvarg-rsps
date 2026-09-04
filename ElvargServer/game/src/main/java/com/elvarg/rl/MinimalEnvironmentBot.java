@@ -17,6 +17,7 @@ import com.elvarg.game.event.events.PlayerPacketsFlushedEvent;
 import com.elvarg.game.event.events.PlayerPacketsProcessedEvent;
 import com.elvarg.game.model.Item;
 import com.elvarg.game.model.Location;
+import com.elvarg.game.content.skill.SkillManager;
 import com.elvarg.game.model.Skill;
 import com.elvarg.game.model.areas.impl.PrivateArea;
 import com.elvarg.game.model.container.impl.Equipment;
@@ -202,6 +203,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 	 * forces it to confront the change explicitly rather than silently deriving from nothing.
 	 */
 	private static final int PROTOCOL_VERSION = 7;
+
+	/**
+	 * S2-HF1 B2 server-side parity layer: count of scenario-baseline stat mismatches seen at
+	 * reset. Monitoring only -- incremented and logged, never thrown on, never read by any
+	 * mechanic and never placed on the wire.
+	 */
+	private int statParityMismatches = 0;
 
 	/** Single-bot static reference for this minimal proof - no multi-client login/routing yet. */
 	private static volatile MinimalEnvironmentBot instance;
@@ -700,6 +708,69 @@ public class MinimalEnvironmentBot extends PlayerBot {
 			// arena tile on the very next tick.
 			this.getMovementQueue().reset();
 			this.moveTo(arena.botSpawn);
+			// SCENARIO BASELINE PARITY (S2-HF1 STAT-PARITY HARNESS REPAIR; osrsproject
+			// docs/PROJECT_STATE.md, "STAGE II -- S2-HF1"): re-assert the scenario's own authored skill
+			// baseline every episode, so XP earned in earlier episodes cannot leak into the next
+			// episode's starting state.
+			//
+			// WHY. CombatFactory.rewardExp() grants this bot Skill.HITPOINTS ((int)(damage * .70)) and
+			// Skill.ATTACK (FightType.SCIMITAR_CHOP is FightStyle.ACCURATE, and ACCURATE.skill(MELEE)
+			// == {ATTACK}) on every landed hit, both multiplied by
+			// GameConstants.COMBAT_SKILLS_EXP_MULTIPLIER (6). SkillManager.addExperience() raises
+			// maxLevel and setCurrentLevel()s to it, so growth persisted for a whole server session;
+			// Player.resetAttributes() only sets current := max, which LOCKS THE GROWN MAX IN rather
+			// than undoing it. Measured live: HITPOINTS max rose 32 -> 72 across one 500k-step run,
+			// drifting both the hp_fraction observation and the damage-taken reward scale with it.
+			//
+			// OWNERSHIP: the baseline is the scenario's OWN preset, never a constant invented here --
+			// the same array Presetables.load() seeds this bot from at login (PlayerBot.java:165). A
+			// configuration declares its baseline by declaring its preset, so this needs no per-arena
+			// knowledge.
+			//
+			// EXPERIENCE IS RESTORED TOO, not just the levels. addExperience() recomputes the new level
+			// from ACCUMULATED experience (getLevelForExperience), so restoring levels while leaving XP
+			// elevated would re-level on the very next landed hit. This mirrors Presetables.load()'s own
+			// three-call sequence exactly (Presetables.java:393-400).
+			//
+			// ORDERING INVARIANT, load-bearing: this runs BEFORE the setHitpoints() below, so the HP
+			// restore picks up the RESTORED max, not the grown one. It is also before the
+			// equipment/BonusManager block further down, which is independent of skill levels.
+			//
+			// SURGICAL, matching this method's existing decision not to replay Presetables.load(): only
+			// the three skill calls load() itself makes are reused. No item, bank, spellbook or
+			// interface handling is touched, no combat mechanic changes, and no stock player is
+			// affected -- this method runs only for MinimalEnvironmentBot.
+			final int[] baselineStats = this.getDefinition().getFighterPreset().getItemPreset().getStats();
+			for (int i = 0; i < baselineStats.length; i++) {
+				final Skill baselineSkill = Skill.values()[i];
+				final int baselineLevel = baselineStats[i];
+				this.getSkillManager()
+						.setCurrentLevel(baselineSkill, baselineLevel)
+						.setMaxLevel(baselineSkill, baselineLevel)
+						.setExperience(baselineSkill, SkillManager.getExperienceForLevel(baselineLevel));
+			}
+			// S2-HF1 B2 SERVER-SIDE PARITY LAYER: monitoring only -- log and count on a mismatch, NEVER
+			// throw. ATTACK parity is not observable on the wire (no payload field carries it, and
+			// adding one would expose a quantity the policy must never see), so this assertion is the
+			// only layer that covers it. A regression must be visible in the server log, not silent.
+			for (int i = 0; i < baselineStats.length; i++) {
+				final Skill checkSkill = Skill.values()[i];
+				final int wantLevel = baselineStats[i];
+				final int wantExp = SkillManager.getExperienceForLevel(wantLevel);
+				if (this.getSkillManager().getMaxLevel(checkSkill) != wantLevel
+						|| this.getSkillManager().getCurrentLevel(checkSkill) != wantLevel
+						|| this.getSkillManager().getExperience(checkSkill) != wantExp) {
+					statParityMismatches++;
+					logger.severe("[MinimalEnv] STAT_PARITY_MISMATCH skill=" + checkSkill
+							+ " wantLevel=" + wantLevel
+							+ " maxLevel=" + this.getSkillManager().getMaxLevel(checkSkill)
+							+ " currentLevel=" + this.getSkillManager().getCurrentLevel(checkSkill)
+							+ " wantExp=" + wantExp
+							+ " exp=" + this.getSkillManager().getExperience(checkSkill)
+							+ " totalMismatches=" + statParityMismatches);
+				}
+			}
+
 			this.setHitpoints(this.getSkillManager().getMaxLevel(Skill.HITPOINTS));
 
 			// EQUIPMENT-LOSS FIX (Step 2's named design consequence): re-assert the authored melee
