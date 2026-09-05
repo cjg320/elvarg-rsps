@@ -49,6 +49,19 @@ public class NPC extends Mobile {
 	 * The npc's current hitpoints.
 	 */
 	private int hitpoints;
+
+	/**
+	 * GENERIC NPC regeneration (S2-HF2): +1 Hitpoint every 100 OSRS game ticks while below max.
+	 *
+	 * AUTHORITY SPLIT: mainspace establishes that ordinary monsters recover Hitpoints slowly. The
+	 * quantitative 1-HP increment and 100-tick interval are supported by lower-tier Monster
+	 * Examine/user-subpage evidence and are adopted as the best currently pinned quantitative
+	 * evidence; they are NOT claimed to be numerically established by the mainspace phrase
+	 * "fairly slowly".
+	 */
+	private static final int NPC_REGEN_INTERVAL_TICKS = 100;
+	private static final int NPC_REGEN_HP_PER_EVENT = 1;
+	private int ticksSinceRegen;
 	/**
 	 * The npc's spawn position (default).
 	 */
@@ -216,18 +229,40 @@ public class NPC extends Mobile {
 			getCombatMethod().onTick(this, this.getCombat().getTarget());
 		}
 
-		// Regenerating health if needed, but only after 20 seconds of last attack.
-		if (getCombat().getLastAttack().elapsed(20000)
-				|| movementCoordinator.getCoordinateState() == CoordinateState.RETREATING) {
-
-			// We've been damaged.
-			// Regenerate health.
-			if (getDefinition().getHitpoints() > hitpoints) {
-				setHitpoints(hitpoints + (int) (getDefinition().getHitpoints() * 0.1));
-				if (hitpoints > getDefinition().getHitpoints()) {
-					setHitpoints(getDefinition().getHitpoints());
-				}
+		// GENERIC NPC HITPOINT REGENERATION (S2-HF2 regen-fidelity repair).
+		//
+		// THIS IS THE GENERIC NPC REGENERATION BEHAVIOR. Documented monster-specific
+		// regeneration/healing mechanics are separate and must not be erased or redefined as
+		// generic behavior. Anything faster or conditional (Banshees, Count Draynor, Tekton,
+		// Vorkath, Zulrah, ...) belongs to that monster, not here.
+		//
+		// AUTHORITY SPLIT, stated explicitly: mainspace establishes that ordinary monsters recover
+		// Hitpoints slowly. The quantitative 1-HP increment and 100-tick interval are supported by
+		// lower-tier Monster Examine/user-subpage evidence and are adopted as the best currently
+		// pinned quantitative evidence; they are NOT claimed to be numerically established by the
+		// mainspace phrase "fairly slowly".
+		//
+		// WHAT WAS REMOVED, AND WHY:
+		//   * the CoordinateState.RETREATING OR-branch. Mainspace documents monster retreat and
+		//     records NO coupling between retreating and healing; the Guardian of Armadyl article
+		//     is silent on healing, regeneration and retreat alike. Silence is not permission, so
+		//     the conservative faithful default applies: no evidence of retreat-triggered healing
+		//     -> no such healing. Retreat ITSELF is untouched -- canReach() and both
+		//     CoordinateState setters/clears are exactly as they were.
+		//   * the 20-second WALL CLOCK (Stopwatch.elapsed(20000)), which desynchronises from game
+		//     time at any non-stock tick rate. Converted to TICK SPACE per the give-up-timer
+		//     precedent. No combat / out-of-combat gate replaces it: no combat condition on
+		//     regeneration is documented anywhere.
+		//   * the 10%-of-max-HP magnitude, which was 4 HP/tick at a 40 HP occupant -- roughly 400x
+		//     the rate adopted here.
+		if (getDefinition().getHitpoints() > hitpoints) {
+			if (++ticksSinceRegen >= NPC_REGEN_INTERVAL_TICKS) {
+				ticksSinceRegen = 0;
+				setHitpoints(Math.min(hitpoints + NPC_REGEN_HP_PER_EVENT,
+						getDefinition().getHitpoints()));
 			}
+		} else {
+			ticksSinceRegen = 0;
 		}
 	}
 	
