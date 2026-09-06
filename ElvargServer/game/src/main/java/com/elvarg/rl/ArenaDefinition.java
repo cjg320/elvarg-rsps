@@ -382,6 +382,27 @@ public final class ArenaDefinition {
     public static final ArenaDefinition ARENA_10W = new ArenaDefinition(
             "ARENA_10W", new Location(3096, 3452), 3446, new Location(3095, 3453), 6, e5Blocker());
 
+    /**
+     * S2-K6-SCREEN-B2: ARENA_10W's EXACT geometry -- same botSpawn (3096,3452), same npcSpawn
+     * (3095,3453), same radius 6, same e5Blocker() obstacle set (shared BY REFERENCE via the same
+     * method call, not duplicated) -- with the occupant swapped 3446 (Guardian of Armadyl) -> 4248
+     * (Head Thief). The occupant is the ONLY variable changed from ARENA_10W; ARENA_10W itself is
+     * untouched. This is the Stage-2.5 danger-axis screen site: the intended experimental change is
+     * OCCUPANT DANGER, not geometry, so preserving the GA transfer geometry exactly is the point.
+     *
+     * npc_defs.json id 4248 "Head Thief": hitpoints=37, maxHit=3, attackSpeed=5, size=1,
+     * combatFollowDistance=7, respawn=25, aggressive=false, attackable=true. size,
+     * combatFollowDistance and respawn are all IDENTICAL to 3446's, so npcCoordinatorRadius=6
+     * carries over unchanged under the same ARENA_01 precedent reasoning ARENA_10W cites, and no
+     * generic-contract field required a different value. Mapped from npc_defs.json at sha256
+     * 8d0ab5557c3e54a571c11d25c43c2c74ecbe30b8285029890ebfa93c12fac9c9.
+     *
+     * NO combat-path conditional on npc id 4248 exists anywhere; no Head-Thief-specific mechanic,
+     * observation field, reward branch or tactic branch is introduced. This is arena hosting only.
+     */
+    public static final ArenaDefinition ARENA_11 = new ArenaDefinition(
+            "ARENA_11", new Location(3096, 3452), 4248, new Location(3095, 3453), 6, e5Blocker());
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -403,8 +424,9 @@ public final class ArenaDefinition {
             case "ARENA_09N" -> ARENA_09N;
             case "ARENA_09S" -> ARENA_09S;
             case "ARENA_10W" -> ARENA_10W;
+            case "ARENA_11" -> ARENA_11;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, or ARENA_10W)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, or ARENA_11)");
         };
     }
 
@@ -438,8 +460,9 @@ public final class ArenaDefinition {
             case "ARENA_09N" -> ARENA_09N;
             case "ARENA_09S" -> ARENA_09S;
             case "ARENA_10W" -> ARENA_10W;
+            case "ARENA_11" -> ARENA_11;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, or ARENA_10W)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, or ARENA_11)");
         };
     }
 
