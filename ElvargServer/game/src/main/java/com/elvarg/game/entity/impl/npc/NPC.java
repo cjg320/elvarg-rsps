@@ -255,7 +255,37 @@ public class NPC extends Mobile {
 		//     regeneration is documented anywhere.
 		//   * the 10%-of-max-HP magnitude, which was 4 HP/tick at a 40 HP occupant -- roughly 400x
 		//     the rate adopted here.
-		if (getDefinition().getHitpoints() > hitpoints) {
+		//
+		// S2-HF3 DEAD/DYING GUARD. A DEAD OR DYING NPC MUST NOT REGENERATE.
+		//
+		// getCombat().process() ABOVE drains the hit queue, so a lethal player hit resolves EARLIER
+		// IN THIS SAME process() CALL: Mobile.decrementHealth() clamps the damage to the remaining
+		// hitpoints and floors the outcome at 0, and setHitpoints(0) calls appendDeath(), which sets
+		// isDying and submits NPCDeathTask. Without this guard the block below then raised hitpoints
+		// back OFF 0 in that very tick, so NO HP READER EVER OBSERVED THE DEATH -- the controlled-
+		// environment harness's terminal predicate is exactly enemy_hp_fraction <= 0. A genuine,
+		// earned kill was therefore silently converted into a full-length timeout while NPCDeathTask
+		// went on to deregister the occupant and schedule a stock respawn, leaving the harness
+		// holding a stale, non-ticking, unattackable target for the rest of the episode. Diagnosed in
+		// S2-HF3 Phase A and reproduced ON DEMAND before this guard landed: 9 of 25 deliberately
+		// collided cycles lost their earned win.
+		//
+		// BOTH CONDITIONS ARE LOAD-BEARING. `hitpoints <= 0` is checked because the lethal HP
+		// transition and this block happen in the SAME process() call, so there is a window in which
+		// the NPC is already at 0; relying on isDying() alone would make the fix depend on the
+		// ordering of two unrelated statements. isDying() is checked because it covers the whole
+		// death sequence, including the ticks after NPCDeathTask has begun.
+		//
+		// SCOPE: this guards the REGENERATION BLOCK ONLY. There is no early return from process();
+		// death detection, death-task scheduling, movement, combat, area and registration processing
+		// above are untouched, as are NPCDeathTask, NPCRespawnTask, respawn timing, cloning,
+		// MobileList, the RL reset path, combat formulas and hit resolution. An NPC that is neither
+		// dead nor dying regenerates EXACTLY as before -- same +1 magnitude, same 100-tick
+		// damaged-time interval, same full-HP reset semantics -- and there is no npc-id, arena,
+		// stage or HP==1 branch anywhere in it.
+		if (hitpoints <= 0 || isDying()) {
+			ticksSinceRegen = 0;
+		} else if (getDefinition().getHitpoints() > hitpoints) {
 			if (++ticksSinceRegen >= NPC_REGEN_INTERVAL_TICKS) {
 				ticksSinceRegen = 0;
 				setHitpoints(Math.min(hitpoints + NPC_REGEN_HP_PER_EVENT,
