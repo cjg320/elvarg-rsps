@@ -1226,6 +1226,13 @@ public class MinimalEnvironmentBot extends PlayerBot {
 				// that method's own doc for the reset-then-consume/pending-flag design and why the
 				// out-of-order NpcAggression engage path needed its own handling.
 				+ ",\"enemy_swing_observed\":" + target.getCombat().attackExecutedThisTick()
+				// S2-K15-ACQUIRE P2: monitoring-only telemetry, same provenance convention as
+				// bot_x/npc_x above -- NOT in FIELD_ORDER, never routed into the observation vector.
+				// Ground truth for the K15 functional classifier's "GA otherwise eligible to attack
+				// this tick" condition (P1.B condition A), which cannot be safely reconstructed
+				// offline from enemy_swing_observed alone (see NPC.getLastTickAttackDelayTicks()'s
+				// own doc for the ordering hazard this avoids). 0 = GA was off cooldown this tick.
+				+ ",\"enemy_attack_delay_ticks\":" + target.getLastTickAttackDelayTicks()
 				// GEOMETRY-FIELD WIRING PASS: was isTargetInMeleeRange(), a hand-maintained replica of
 				// canReach()'s geometry that had already drifted once (missed the wall-clipping fix).
 				// Now the same CombatFactory.isMeleeReachable() call enemy_in_my_attack_range above

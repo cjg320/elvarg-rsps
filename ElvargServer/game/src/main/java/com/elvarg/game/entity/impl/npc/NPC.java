@@ -24,6 +24,7 @@ import com.elvarg.game.model.areas.AreaManager;
 import com.elvarg.game.model.areas.impl.WildernessArea;
 import com.elvarg.game.task.TaskManager;
 import com.elvarg.game.task.impl.NPCDeathTask;
+import com.elvarg.util.timers.TimerKey;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import static com.elvarg.game.content.combat.CombatFactory.MELEE_COMBAT;
@@ -45,6 +46,20 @@ public class NPC extends Mobile {
 	 * The npc's movement coordinator. Handles random walking.
 	 */
 	private NPCMovementCoordinator movementCoordinator = new NPCMovementCoordinator(this);
+	/**
+	 * S2-K15-ACQUIRE P2 MONITORING-ONLY TELEMETRY: this NPC's own remaining COMBAT_ATTACK cooldown,
+	 * snapshotted once per tick in {@link #process()} right after timers decrement and BEFORE this
+	 * tick's own {@code getCombat().process()} runs (which may re-arm the timer via a landed attack
+	 * or a flinch retaliation delay). Reading {@code getTimers().getTicks(TimerKey.COMBAT_ATTACK)}
+	 * LIVE from a later call site (e.g. the bot's own observation-payload builder, which runs after
+	 * NPC combat has already been processed for this tick) would conflate "ready and just attacked"
+	 * with "still on cooldown" -- exactly the same hazard {@link MinimalEnvironmentBot}'s own
+	 * {@code lastStepAttackOffCooldown} field exists to avoid for the symmetric (bot-side) case; this
+	 * field mirrors that pattern for the NPC side. 0 means ready-to-attack as of this tick; never
+	 * negative (see {@code Timer.tick()}, which clamps at 0). Never entered into policy observation,
+	 * reward, action mask, or training control -- read-only telemetry, same channel as bot_x/npc_x.
+	 */
+	private volatile int lastTickAttackDelayTicks;
 	/**
 	 * The npc's current hitpoints.
 	 */
@@ -208,6 +223,11 @@ public class NPC extends Mobile {
 
 		// Timers
 		getTimers().process();
+
+		// S2-K15-ACQUIRE P2: snapshot this tick's attack-delay state right after the decrement
+		// above and before getCombat().process() below can re-arm COMBAT_ATTACK -- see this field's
+		// own doc for why the ordering matters.
+		lastTickAttackDelayTicks = getTimers().getTicks(TimerKey.COMBAT_ATTACK);
 
 		// Handles random walk and retreating from fights
 		getMovementQueue().process();
@@ -418,6 +438,14 @@ public class NPC extends Mobile {
 	/*
 	 * Getters and setters
 	 */
+
+	/**
+	 * S2-K15-ACQUIRE P2 monitoring-only telemetry accessor -- see {@link #lastTickAttackDelayTicks}'s
+	 * own doc. 0 means this NPC was ready to attack as of this tick's snapshot.
+	 */
+	public int getLastTickAttackDelayTicks() {
+		return lastTickAttackDelayTicks;
+	}
 
 	public int getId() {
 		if (getNpcTransformationId() != -1) {
