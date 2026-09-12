@@ -403,6 +403,139 @@ public final class ArenaDefinition {
     public static final ArenaDefinition ARENA_11 = new ArenaDefinition(
             "ARENA_11", new Location(3096, 3452), 4248, new Location(3095, 3453), 6, e5Blocker());
 
+    // S2-K14-MAPDIST-CERT: PAIRED TREATMENT/SHAM MAP FAMILY (osrsproject docs/PROJECT_STATE.md,
+    // "S2-K14-MAPDIST-CERT"). Three treatment maps, each containing a certified protected-
+    // reachability arrangement for GA/3446, and three paired sham maps holding every other
+    // property fixed with the arrangement absent. All six share, BY REFERENCE (not duplicated):
+    // a dedicated 23x23 boundary (x[3395,3417] y[2959,2981], centered exactly on npcSpawn) carved
+    // from the SAME already-verified-isolated donor site ARENA_04/05/06 established (their own
+    // 35x35 footprint, x[3388,3422] y[2953,2987]) -- a subset of an already-clear region is still
+    // clear, and only one arena is ever registered at a time (ArenaDefinition.select()/byId()'s own
+    // switch-teardown discipline), so this narrower perimeter coexists with ARENA_04/05/06's own
+    // wider one without conflict. The same botSpawn (3405,2970) / npcSpawn (3406,2970) pair those
+    // three arenas use, and GA/3446 as occupant (matching K10/K11/K12/K13's own GA lineage, held
+    // fixed as the milestone's own frozen lever). npcCoordinatorRadius=6 carries over under the
+    // same combatFollowDistance=7 precedent ARENA_10W/ARENA_11 already establish for this exact
+    // occupant.
+    //
+    // BOUNDARY SIZE, REVISED TWICE DURING PRE-FREEZE ENGINEERING (not yet frozen under P10): a
+    // first candidate reused ARENA_04/05/06's own full 35x35 footprint verbatim. Its P11
+    // exposure-probe shakedown (25,000 no-learning steps, ARENA_K14_T1) measured ZERO qualifying
+    // witnesses despite the corner being exhaustively confirmed present (2 qualifying edges) and
+    // despite real combat occurring throughout (581 HP dealt, 844 taken, enemy_in_my_attack_range
+    // true on 1,649/25,000 ticks) -- the bot's own uniform-random walk visited 1,224 of the 1,225
+    // tiles in that box (a random walk diffuses across a region far faster than any fixed step
+    // budget can concentrate it back onto one 2-tile pocket), so the specific corner-adjacency
+    // configuration was vanishingly rare purely from spatial dilution, not from any predicate or
+    // engine defect. A second candidate (23x23) improved this to exactly 1 witness in 25,000 steps
+    // -- still short of the frozen >=5 exposure gate. This 19x19 boundary is the minimum size that
+    // still leaves the frozen radius-7 audit domain (P3, itself equal to GA's own
+    // combatFollowDistance) a genuine, non-zero margin from every boundary wall: domain tiles reach
+    // at most Chebyshev distance 6 from npcSpawn, and this boundary's nearest wall sits at distance
+    // 9, a 3-tile clearance that keeps the SHARED boundary perimeter itself from ever falling
+    // inside the audited domain -- which would otherwise contaminate every map's witness count
+    // (sham included, since the boundary is identical across all six) with a spurious "boundary
+    // cover" artifact unrelated to the manipulated arrangement. Re-verified, not assumed, by this
+    // pass's own re-run at each size.
+    //
+    // TREATMENT GEOMETRY: a 2-wall L-corner (object 979, the ARENA_01/03/06-certified reach-
+    // denial technique), oriented per the Wiki-documented BFS tile-check-order constraint
+    // (ARENA_06's own citation, Audit 1(a)): the occupant must be WEST or EAST (never north/south)
+    // of the blocking object. npcSpawn (3406,2970) sits EAST of T1's and T3's corners and WEST of
+    // T2's corner -- both orientations satisfy the constraint, giving a genuine mirror-image
+    // pocket for T2 rather than a re-skinned copy of T1. All three corners sit within Chebyshev
+    // distance 4 of npcSpawn (well inside the frozen K14 audit-domain radius of 7, itself equal to
+    // GA's own combatFollowDistance so the audit domain provably excludes the NPC's own
+    // spawn-distance retreat trigger) and 7+ tiles clear of the shared boundary.
+    //
+    // SHAM GEOMETRY: each paired sham places the IDENTICAL wall count (2 objects, same object id
+    // 979) as its own treatment counterpart -- holding "obstacle amount / wall mass" fixed exactly,
+    // per the milestone's own instruction, rather than deleting the obstacles outright -- but at a
+    // tile whose Chebyshev distance from npcSpawn is >= 7, i.e. OUTSIDE the frozen K14 audit-domain
+    // radius by construction. A wall placed outside that radius cannot participate in any
+    // qualifying protected-opportunity witness under the frozen K14.P2 predicate (which requires
+    // the wall-blocked tile itself to sit within the same radius-7 domain), so sham zero-witness
+    // status is provable by construction and independently re-verified by the live exhaustive
+    // audit rather than asserted from placement alone.
+    private static final Location K14_NPC_SPAWN = new Location(3406, 2970, 0);
+    private static final List<ObstacleSpec> K14_BOUNDARY =
+            buildRectangularBoundary(3397, 2961, 3415, 2979, 979);
+
+    private static List<ObstacleSpec> k14Bar(int x1, int y1, int x2, int y2, int direction) {
+        List<ObstacleSpec> bar = new java.util.ArrayList<>(K14_BOUNDARY);
+        if (y1 == y2) {
+            for (int x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
+                bar.add(new ObstacleSpec(979, new Location(x, y1, 0), 0, direction));
+            }
+        } else {
+            for (int y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+                bar.add(new ObstacleSpec(979, new Location(x1, y, 0), 0, direction));
+            }
+        }
+        return Collections.unmodifiableList(bar);
+    }
+
+    // T1/T2/T3 GEOMETRY, REVISED THREE TIMES DURING PRE-FREEZE ENGINEERING (not yet frozen under
+    // P10): a first candidate placed a 2-wall L-corner 3-4 tiles from npcSpawn (ARENA_06's own
+    // corner tile for T1); a second moved it to Chebyshev-distance-1 from npcSpawn and added a
+    // correlated (sticky) random walk to the P11 driver after finding the round-trip filter
+    // (engaged within H_OUT=5 before a qualifying entry, H_BACK=5 after) discarded nearly all raw
+    // protected ticks under a memoryless walk; a third added a third wall per pocket (3 of 4 sides
+    // blocked, one left open for legal entry/exit). A 100,000-step diagnostic run on that third
+    // candidate measured only 2 qualifying witnesses (~0.5 expected per 25,000-step probe) --
+    // roughly 10x short of the frozen >=5 gate, confirming a single 1-tile pocket's protected
+    // surface is fundamentally too small regardless of exactly which single tile it occupies.
+    //
+    // This FOURTH candidate replaces each 1-tile pocket with an 11-TILE LINEAR BARRIER: one
+    // cardinal edge blocked along an entire 11-tile line immediately adjacent to npcSpawn's own row
+    // or column, rather than at one single tile. Any bot position anywhere along the line, paired
+    // with GA anywhere along the line's OTHER side, now qualifies -- an 11x larger target than the
+    // single-tile design, while every tile in the line stays within Chebyshev distance 5 of
+    // npcSpawn (comfortable margin inside the frozen radius-7 audit domain) and remains freely
+    // enterable from either open end (no wall closes the ends, so no entry-path conflict of the
+    // kind the single-pocket design hit).
+    //
+    // T1: south-blocking wall along y=2971, x=3401..3411 (11 tiles) -- denies reach from directly
+    // south (npcSpawn's own row, y=2970) for any bot position along this line.
+    public static final ArenaDefinition ARENA_K14_T1 = new ArenaDefinition(
+            "ARENA_K14_T1", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3401, 2971, 3411, 2971, 3));
+
+    // T2: north-blocking wall along y=2969, x=3401..3411 (11 tiles) -- denies reach from directly
+    // north (npcSpawn's own row) for any bot position along this line. The opposite side of
+    // npcSpawn's row from T1, a genuinely distinct barrier, not a re-skinned copy of it.
+    public static final ArenaDefinition ARENA_K14_T2 = new ArenaDefinition(
+            "ARENA_K14_T2", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3401, 2969, 3411, 2969, 1));
+
+    // T3: west-blocking wall along x=3407, y=2965..2975 (11 tiles) -- denies reach from directly
+    // west (npcSpawn's own column, x=3406) for any bot position along this line. A perpendicular
+    // orientation to T1/T2, the third distinct barrier.
+    public static final ArenaDefinition ARENA_K14_T3 = new ArenaDefinition(
+            "ARENA_K14_T3", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3407, 2965, 3407, 2975, 0));
+
+    // S1 (paired with T1): matched 11-object wall mass along y=2963, x=3401..3411 -- every tile in
+    // this row sits at Chebyshev 7 from npcSpawn (the y-distance alone already equals the radius),
+    // which the frozen predicate's own `>=` test excludes by construction regardless of x, 2 tiles
+    // clear of the 19x19 boundary. Direction mirrors T1's (south) for documentation clarity only;
+    // inert this far outside the audited domain.
+    public static final ArenaDefinition ARENA_K14_S1 = new ArenaDefinition(
+            "ARENA_K14_S1", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3401, 2963, 3411, 2963, 3));
+
+    // S2 (paired with T2): matched 11-object wall mass along y=2977, x=3401..3411 -- Chebyshev 7
+    // from npcSpawn by y-distance alone, outside the radius-7 audit domain by construction.
+    public static final ArenaDefinition ARENA_K14_S2 = new ArenaDefinition(
+            "ARENA_K14_S2", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3401, 2977, 3411, 2977, 1));
+
+    // S3 (paired with T3): matched 11-object wall mass along x=3399, y=2965..2975 -- Chebyshev 7
+    // from npcSpawn by x-distance alone, outside the radius-7 audit domain by construction.
+    public static final ArenaDefinition ARENA_K14_S3 = new ArenaDefinition(
+            "ARENA_K14_S3", new Location(3405, 2970), 3446, K14_NPC_SPAWN, 6,
+            k14Bar(3399, 2965, 3399, 2975, 0));
+
     /** Reads {@code ARENA_ID} from the environment; unset/unrecognized -> ARENA_00 (today's behavior). */
     public static ArenaDefinition select() {
         String requested = System.getenv("ARENA_ID");
@@ -425,8 +558,14 @@ public final class ArenaDefinition {
             case "ARENA_09S" -> ARENA_09S;
             case "ARENA_10W" -> ARENA_10W;
             case "ARENA_11" -> ARENA_11;
+            case "ARENA_K14_T1" -> ARENA_K14_T1;
+            case "ARENA_K14_T2" -> ARENA_K14_T2;
+            case "ARENA_K14_T3" -> ARENA_K14_T3;
+            case "ARENA_K14_S1" -> ARENA_K14_S1;
+            case "ARENA_K14_S2" -> ARENA_K14_S2;
+            case "ARENA_K14_S3" -> ARENA_K14_S3;
             default -> throw new IllegalArgumentException(
-                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, or ARENA_11)");
+                    "Unknown ARENA_ID: " + requested + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, ARENA_11, or ARENA_K14_T1/T2/T3/S1/S2/S3)");
         };
     }
 
@@ -461,8 +600,14 @@ public final class ArenaDefinition {
             case "ARENA_09S" -> ARENA_09S;
             case "ARENA_10W" -> ARENA_10W;
             case "ARENA_11" -> ARENA_11;
+            case "ARENA_K14_T1" -> ARENA_K14_T1;
+            case "ARENA_K14_T2" -> ARENA_K14_T2;
+            case "ARENA_K14_T3" -> ARENA_K14_T3;
+            case "ARENA_K14_S1" -> ARENA_K14_S1;
+            case "ARENA_K14_S2" -> ARENA_K14_S2;
+            case "ARENA_K14_S3" -> ARENA_K14_S3;
             default -> throw new IllegalArgumentException(
-                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, or ARENA_11)");
+                    "Unknown arena_id: " + id + " (expected ARENA_00, ARENA_01, ARENA_02, ARENA_03, ARENA_04, ARENA_05, ARENA_06, ARENA_07, ARENA_08, ARENA_09W/E/N/S, ARENA_10W, ARENA_11, or ARENA_K14_T1/T2/T3/S1/S2/S3)");
         };
     }
 
