@@ -685,6 +685,19 @@ public class MinimalEnvironmentBot extends PlayerBot {
 					ArenaDefinition oldArena = this.arena;
 					ArenaDefinition newArena = requestedArena;
 					ArenaDefinition.deregisterObstacles(oldArena);
+					// S2-K15-SWITCHFIX: cancel any pending stock respawn for the OUTGOING NPC before
+					// discarding it, mirroring the reuse branch's own TaskManager.cancelTasks(target)
+					// call below (PROJECT_STATE.md section 13, NPC-CHURN ROOT FIX) -- that call exists
+					// for exactly this reason there, and this switch branch discards the NPC instead of
+					// reusing it, but the same stock-respawn hazard applies either way. Source-confirmed
+					// (NPCDeathTask.stop() -> TaskManager.submit(new NPCRespawnTask(npc, ...)) if this
+					// NPC died shortly before the switch; NPCRespawnTask.execute() ->
+					// World.getAddNPCQueue().add(npc.clone()), unconditionally, if never cancelled) --
+					// without this call, that task fires after its delay and re-registers a same-id
+					// clone of the DISCARDED NPC into the world, which the ghost-sweep backstop further
+					// below cannot catch because that backstop only runs INSIDE performReset(), which
+					// may not run again for a long time (CLASS-A defect, diagnosed prior unit).
+					TaskManager.cancelTasks(this.target);
 					// Ghost-sweep precedent (see the backstop further below): unconditional queued
 					// removal, not a reuse -- a switch replaces the NPC outright, unlike the
 					// NPC-CHURN ROOT FIX's own "hold one instance across the run" convention for a
