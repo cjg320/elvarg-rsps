@@ -406,7 +406,46 @@ public class CombatFactory {
 		if (distance == 1 && meleeBlockedByWall(attacker.getLocation(), target.getLocation(), attacker.getPrivateArea())) {
 			return MeleeReachResult.WALL_BLOCKED;
 		}
+		// S2-K15-WALLFIX: the wall check now also applies at distance 2 (reached only through the
+		// both-moving +1 reach extension in canReach()/isMeleeReachable(), which is unchanged). A wall
+		// between the pair must block melee in both directions, at distance 2 as at distance 1.
+		// Size-1 vs size-1 only, the same scoping as the diagonal exclusion above. Attackers whose
+		// base melee range is already 2 (halberd wielders, MeleeCombatMethod.attackDistance) are
+		// excluded: for them distance 2 is ordinary reach, not the both-moving extension, and their
+		// existing behaviour is left bit-identical to HEAD.
+		if (distance == 2 && attacker.size() == 1 && target.size() == 1
+				&& !(attacker.isPlayer() && attacker.getAsPlayer().getWeapon() == WeaponInterface.HALBERD)
+				&& !meleeTwoStepRouteExists(attacker.getLocation(), target.getLocation(), attacker.getPrivateArea())) {
+			return MeleeReachResult.WALL_BLOCKED;
+		}
 		return MeleeReachResult.REACHABLE;
+	}
+
+	/**
+	 * S2-K15-WALLFIX: distance-2 generalization of {@link #meleeBlockedByWall}. A pair at Chebyshev
+	 * distance 2 is melee-connected iff some tile m, Chebyshev-adjacent to both, is joined to each end by
+	 * an unblocked unit step ({@link RegionManager#canMove}, which also checks both orthogonal components
+	 * of a diagonal step), i.e. the shortest unobstructed king-move route between them has length at most
+	 * 2, exactly as distance 1 requires one unobstructed step. Symmetric in attacker/target by
+	 * construction (the route is reversible), so it holds in both attack directions. A route round the
+	 * end of a bar counts as connected; a bar spanning between the pair does not. Pure and static.
+	 */
+	public static boolean meleeTwoStepRouteExists(Location a, Location b, PrivateArea privateArea) {
+		for (int dx = -1; dx <= 1; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				if (dx == 0 && dy == 0) {
+					continue;
+				}
+				Location m = a.transform(dx, dy);
+				if (m.equals(b) || m.getDistance(b) != 1) {
+					continue;
+				}
+				if (RegionManager.canMove(a, m, 1, 1, privateArea) && RegionManager.canMove(m, b, 1, 1, privateArea)) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/**
