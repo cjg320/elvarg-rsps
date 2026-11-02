@@ -249,6 +249,31 @@ public final class HarnessServer {
 				com.elvarg.game.model.teleportation.TeleportHandler.teleport(p, t.getPosition(), p.getSpellbook().getTeleportType(), true);
 				return "{\"ok\":true}";
 			}
+			case "packet": {
+				// Feeds a real client packet (opcode + raw payload hex) to the stock packet listener, exactly as the
+				// network decoder would. Player-action path for everything (interfaces, shops, bank, objects).
+				Player p = user == null ? null : accounts.get(user);
+				Integer op = intField(line, "opcode");
+				String hex = field(line, "hex");
+				if (p == null || op == null || hex == null || op < 0 || op > 256
+						|| com.elvarg.net.packet.PacketConstants.PACKETS[op] == null || !hex.matches("([0-9a-fA-F]{2})*")) {
+					return "{\"ok\":false,\"error\":\"bad packet\"}";
+				}
+				byte[] bytes = new byte[hex.length() / 2];
+				for (int i = 0; i < bytes.length; i++) {
+					bytes[i] = (byte) Integer.parseInt(hex.substring(2 * i, 2 * i + 2), 16);
+				}
+				com.elvarg.net.packet.Packet pkt = new com.elvarg.net.packet.Packet(op, io.netty.buffer.Unpooled.wrappedBuffer(bytes));
+				try {
+					// Executed by the stock listener on the game thread (same code path processPackets uses).
+					com.elvarg.net.packet.PacketConstants.PACKETS[op].execute(p, pkt);
+				} catch (Throwable t) {
+					return "{\"ok\":false,\"error\":\"listener threw " + esc(String.valueOf(t)) + "\"}";
+				} finally {
+					pkt.getBuffer().release();
+				}
+				return "{\"ok\":true}";
+			}
 			case "eat": {
 				Player p = user == null ? null : accounts.get(user);
 				Integer slot = intField(line, "slot");
@@ -300,6 +325,32 @@ public final class HarnessServer {
 		return sb.append("]").toString();
 	}
 
+	private static boolean bankOpen(Player p) {
+		return p.getStatus() == com.elvarg.game.model.PlayerStatus.BANKING && p.getInterfaceId() == 5292;
+	}
+
+	/** Bank contents as [tab, slot, id, amount], visible only while the bank interface is open. */
+	private static String bank(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		com.elvarg.game.model.container.impl.Bank[] banks = p.getBanks();
+		for (int t = 0; t < banks.length; t++) {
+			if (banks[t] == null) {
+				continue;
+			}
+			Item[] arr = banks[t].getItems();
+			for (int i = 0; i < arr.length; i++) {
+				if (arr[i] == null || arr[i].getId() <= 0) {
+					continue;
+				}
+				sb.append(first ? "" : ",").append("[").append(t).append(",").append(i).append(",").append(arr[i].getId())
+						.append(",").append(arr[i].getAmount()).append("]");
+				first = false;
+			}
+		}
+		return sb.append("]").toString();
+	}
+
 	private static String state(Player p) {
 		SkillManager sm = p.getSkillManager();
 		StringBuilder sk = new StringBuilder("{");
@@ -313,6 +364,6 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 }
