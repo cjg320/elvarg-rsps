@@ -56,6 +56,21 @@ public final class HarnessServer {
 	private record Pending(String line, java.util.concurrent.CompletableFuture<String> reply) {
 	}
 
+	private record Deferred(Pending p, long dueTick) {
+	}
+
+	private static final java.util.List<Deferred> deferred = new java.util.ArrayList<>();
+
+	private static void run(Pending p) {
+		String out;
+		try {
+			out = handle(p.line());
+		} catch (Throwable t) {
+			out = "{\"ok\":false,\"error\":\"" + esc(String.valueOf(t)) + "\"}";
+		}
+		p.reply().complete(out);
+	}
+
 	private HarnessServer() {
 	}
 
@@ -64,15 +79,24 @@ public final class HarnessServer {
 			@Override
 			protected void execute() {
 				tickCount++;
+				// Deferred commands (wait_ticks=k): answered at the drain stage of the tick k ticks after they were
+				// received, so a learner can step the world a fixed number of game ticks per decision.
+				java.util.Iterator<Deferred> it = deferred.iterator();
+				while (it.hasNext()) {
+					Deferred d = it.next();
+					if (tickCount >= d.dueTick()) {
+						it.remove();
+						run(d.p());
+					}
+				}
 				Pending p;
 				while ((p = queue.poll()) != null) {
-					String out;
-					try {
-						out = handle(p.line());
-					} catch (Throwable t) {
-						out = "{\"ok\":false,\"error\":\"" + esc(String.valueOf(t)) + "\"}";
+					Integer wait = intField(p.line(), "wait_ticks");
+					if (wait != null && wait > 0 && wait <= 600) {
+						deferred.add(new Deferred(p, tickCount + wait));
+					} else {
+						run(p);
 					}
-					p.reply().complete(out);
 				}
 			}
 		});
