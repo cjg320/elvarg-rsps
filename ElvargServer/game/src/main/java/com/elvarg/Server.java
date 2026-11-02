@@ -184,7 +184,7 @@ public class Server {
                 }
             }
 
-            new MinimalSocketServer(7070).start();
+            new MinimalSocketServer(System.getenv("RL_PORT") == null ? 7070 : Integer.parseInt(System.getenv("RL_PORT"))).start();
             String harnessPort = System.getenv("HARNESS_PORT");
             if (harnessPort != null && !harnessPort.isEmpty()) {
                 com.elvarg.rl.HarnessServer.start(Integer.parseInt(harnessPort));
