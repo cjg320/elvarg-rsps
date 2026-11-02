@@ -94,7 +94,7 @@ public final class HarnessServer {
 					}
 				});
 		try {
-			Channel c = b.bind(port).sync().channel();
+			Channel c = b.bind("127.0.0.1", port).sync().channel();
 			logger.info("[Harness] listening on port " + port);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -116,16 +116,22 @@ public final class HarnessServer {
 		StringBuilder sb = new StringBuilder("[");
 		boolean first = true;
 		for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
-			if (n == null || n.getLocation().getZ() != p.getLocation().getZ()
+			if (n == null || n.isDying() || n.getHitpoints() <= 0 || n.getLocation().getZ() != p.getLocation().getZ()
 					|| n.getLocation().getDistance(p.getLocation()) > 15) {
 				continue;
 			}
 			sb.append(first ? "" : ",").append("[").append(n.getIndex()).append(",").append(n.getId()).append(",")
 					.append(n.getLocation().getX()).append(",").append(n.getLocation().getY()).append(",")
-					.append(n.getHitpoints()).append("]");
+					.append(healthBar(n)).append("]");
 			first = false;
 		}
 		return sb.append("]").toString();
+	}
+
+	/** Health bar as a player sees it: 0..30 pixels, never the exact hitpoints. */
+	private static int healthBar(com.elvarg.game.entity.impl.npc.NPC n) {
+		int max = Math.max(1, n.getDefinition() == null ? n.getHitpoints() : n.getDefinition().getHitpoints());
+		return (int) Math.ceil(30.0 * Math.min(n.getHitpoints(), max) / max);
 	}
 
 	private static String esc(String s) {
@@ -135,6 +141,9 @@ public final class HarnessServer {
 	private static String handle(String line) {
 		String cmd = field(line, "cmd");
 		String user = field(line, "user");
+		if (user != null && !user.matches("[A-Za-z0-9_]{1,12}")) {
+			return "{\"ok\":false,\"error\":\"bad user\"}";
+		}
 		if (cmd == null) {
 			return "{\"ok\":false,\"error\":\"no cmd\"}";
 		}
@@ -205,6 +214,9 @@ public final class HarnessServer {
 				}
 				for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
 					if (n != null && n.getIndex() == idx) {
+						if (n.isDying() || n.getHitpoints() <= 0 || p.getHitpoints() <= 0) {
+							return "{\"ok\":false,\"error\":\"cannot attack\"}";
+						}
 						p.getCombat().attack(n);
 						return "{\"ok\":true}";
 					}
@@ -218,8 +230,12 @@ public final class HarnessServer {
 					return "{\"ok\":false,\"error\":\"bad eat\"}";
 				}
 				Item it = p.getInventory().getItems()[slot];
-				boolean ate = it != null && it.getId() > 0
-						&& com.elvarg.game.content.Food.consume(p, it.getId(), slot);
+				boolean ate = false;
+				if (it != null && it.getId() > 0) {
+					int before = p.getInventory().getAmount(it.getId());
+					com.elvarg.game.content.Food.consume(p, it.getId(), slot);
+					ate = p.getInventory().getAmount(it.getId()) < before;
+				}
 				return "{\"ok\":true,\"ate\":" + ate + "}";
 			}
 			case "equip": {
@@ -234,7 +250,9 @@ public final class HarnessServer {
 				}
 				com.elvarg.net.packet.impl.EquipPacketListener.equip(p, it.getId(), slot,
 						com.elvarg.game.model.container.impl.Inventory.INTERFACE_ID);
-				return "{\"ok\":true}";
+				Item after = p.getInventory().getItems()[slot];
+				boolean equipped = after == null || after.getId() != it.getId();
+				return "{\"ok\":true,\"equipped\":" + equipped + "}";
 			}
 			default:
 				return "{\"ok\":false,\"error\":\"unknown cmd\"}";
