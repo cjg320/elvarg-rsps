@@ -34,6 +34,19 @@ public class JSONFilePlayerPersistence extends PlayerPersistence {
         try (FileReader fileReader = new FileReader(file)) {
             return BUILDER.fromJson(fileReader, PlayerSave.class);
         } catch (Exception e) {
+            // Unreadable (e.g. truncated by a crash under the old non-atomic writer): fall back to the last good backup.
+            File bak = new File(file.getPath() + ".bak");
+            if (bak.exists()) {
+                try (FileReader r = new FileReader(bak)) {
+                    PlayerSave s = BUILDER.fromJson(r, PlayerSave.class);
+                    if (s != null) {
+                        System.out.println("[Persistence] " + username + ".json unreadable, loaded .bak");
+                        return s;
+                    }
+                } catch (Exception e2) {
+                    // fall through
+                }
+            }
             throw new RuntimeException(e);
         }
     }
@@ -48,8 +61,22 @@ public class JSONFilePlayerPersistence extends PlayerPersistence {
 
         Gson builder = new GsonBuilder().setPrettyPrinting().create();
 
-		try (FileWriter writer = new FileWriter(file)) {
-			writer.write(builder.toJson(save));
+		// Crash-safe write: a kill mid-save must never leave a truncated character file. Write a temp file,
+		// fsync it, keep the previous good file as <name>.json.bak, then atomically move the temp over the save.
+		try {
+			File tmp = new File(file.getPath() + ".tmp");
+			try (java.io.FileOutputStream out = new java.io.FileOutputStream(tmp);
+					java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(out, java.nio.charset.StandardCharsets.UTF_8)) {
+				writer.write(builder.toJson(save));
+				writer.flush();
+				out.getFD().sync();
+			}
+			if (file.exists()) {
+				java.nio.file.Files.copy(file.toPath(), new File(file.getPath() + ".bak").toPath(),
+						java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			}
+			java.nio.file.Files.move(tmp.toPath(), file.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+					java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 		} catch (Exception e) {
 			Server.getLogger().log(Level.SEVERE, "An error has occurred while saving a character file!", e);
             throw new RuntimeException(e);
