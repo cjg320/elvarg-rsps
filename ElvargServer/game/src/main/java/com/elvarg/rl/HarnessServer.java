@@ -157,6 +157,7 @@ public final class HarnessServer {
 					return "{\"ok\":false,\"error\":\"already logged in\"}";
 				}
 				Player p = new Player(new PlayerBotSession());
+				p.setHarnessAccount(true);
 				p.setUsername(user).setLongUsername(Misc.stringToLong(user)).setHostAddress("127.0.0.1");
 				LoginDetailsMessage msg = new LoginDetailsMessage(null, user, pass, "127.0.0.1", null, null);
 				int res = LoginResponses.evaluate(p, msg);

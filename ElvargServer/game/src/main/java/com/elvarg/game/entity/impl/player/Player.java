@@ -164,6 +164,20 @@ public class Player extends Mobile {
 	private int destroyItem = -1;
 	private boolean updateInventory; // Updates inventory on next tick
 	private boolean newPlayer;
+
+	/**
+	 * M1 harness accounts (rl/HarnessServer) start truly fresh: no random PvP preset on first login, and
+	 * their login does not spawn the stock PlayerBots. False for every other player (stock behaviour).
+	 */
+	private boolean harnessAccount;
+
+	public boolean isHarnessAccount() {
+		return harnessAccount;
+	}
+
+	public void setHarnessAccount(boolean harnessAccount) {
+		this.harnessAccount = harnessAccount;
+	}
 	private boolean packetsBlocked = false;
 	private int regionHeight;
 
@@ -680,12 +694,12 @@ public class Player extends Mobile {
 
 		getUpdateFlag().flag(Flag.APPEARANCE);
 
-		if (this.newPlayer) {
+		if (this.newPlayer && !this.harnessAccount) {
 			int presetIndex = Misc.randomInclusive(0, Presetables.GLOBAL_PRESETS.length-1);
 			Presetables.load(this, Presetables.GLOBAL_PRESETS[presetIndex]);
 		}
 
-		if (!(this instanceof PlayerBot)) {
+		if (!(this instanceof PlayerBot) && !this.harnessAccount) {
 			// Spawn player bots when a real player logs in
 			for (PlayerBotDefinition definition : GameConstants.PLAYER_BOTS) {
 				if (World.getPlayerBots().containsKey(definition.getUsername())) {
