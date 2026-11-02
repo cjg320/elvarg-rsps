@@ -387,6 +387,20 @@ public final class HarnessServer {
 				}
 				return "{\"ok\":true,\"removed\":" + n + "}";
 			}
+			case "dev_give": {
+				// DEV SANDBOX ONLY: puts items in the inventory (e.g. food) so recovery behaviour can be learned.
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer id = intField(line, "item_id"), amt = intField(line, "amount");
+				if (p == null || id == null || amt == null || amt < 1 || amt > 100) {
+					return "{\"ok\":false,\"error\":\"bad dev_give\"}";
+				}
+				p.getInventory().add(id, amt);
+				p.getInventory().refreshItems();
+				return "{\"ok\":true}";
+			}
 			case "dev_spawn": {
 				// DEV SANDBOX ONLY (env HARNESS_DEV=1): spawns an NPC near the account for combat-learning experiments.
 				// Never used in a certification run; reports must label any run that used it.
