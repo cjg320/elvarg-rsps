@@ -202,6 +202,7 @@ public class PlayerDeathTask extends Task {
 				break;
 
 				case 2:
+					player.harnessDeaths++;   // latched death counter (read by the harness; no stock logic uses it)
 					if (player instanceof PlayerBot) {
 						((PlayerBot) player).getCombatInteraction().handleDying(this.killer);
 					}

@@ -171,6 +171,9 @@ public class Player extends Mobile {
 	 */
 	private boolean harnessAccount;
 
+	/** Number of deaths this session (incremented when the stock death sequence starts). */
+	public int harnessDeaths;
+
 	public boolean isHarnessAccount() {
 		return harnessAccount;
 	}
