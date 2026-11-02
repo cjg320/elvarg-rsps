@@ -106,6 +106,28 @@ public final class HarnessServer {
 		return m.find() ? m.group(1) : null;
 	}
 
+	private static Integer intField(String line, String name) {
+		Matcher m = Pattern.compile("\"" + name + "\"\\s*:\\s*(-?\\d+)").matcher(line);
+		return m.find() ? Integer.valueOf(m.group(1)) : null;
+	}
+
+	/** NPCs within 15 tiles on the same plane: what a player sees on screen (index, id, position, health bar). */
+	private static String npcs(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
+			if (n == null || n.getLocation().getZ() != p.getLocation().getZ()
+					|| n.getLocation().getDistance(p.getLocation()) > 15) {
+				continue;
+			}
+			sb.append(first ? "" : ",").append("[").append(n.getIndex()).append(",").append(n.getId()).append(",")
+					.append(n.getLocation().getX()).append(",").append(n.getLocation().getY()).append(",")
+					.append(n.getHitpoints()).append("]");
+			first = false;
+		}
+		return sb.append("]").toString();
+	}
+
 	private static String esc(String s) {
 		return s.replace("\\", "\\\\").replace("\"", "'").replace("\n", " ");
 	}
@@ -159,6 +181,61 @@ public final class HarnessServer {
 				World.getRemovePlayerQueue().add(p);
 				return "{\"ok\":true}";
 			}
+			case "walk": {
+				Player p = user == null ? null : accounts.get(user);
+				Integer dx = intField(line, "dx"), dy = intField(line, "dy");
+				if (p == null || dx == null || dy == null || Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+					return "{\"ok\":false,\"error\":\"bad walk\"}";
+				}
+				p.getMovementQueue().reset();
+				p.getMovementQueue().walkToReset();
+				com.elvarg.game.model.Location cur = p.getLocation();
+				if (!com.elvarg.game.collision.RegionManager.canMove(cur, cur.transform(dx, dy), p.size(), p.size(),
+						p.getPrivateArea())) {
+					return "{\"ok\":true,\"moved\":false}";
+				}
+				p.getMovementQueue().walkStep(dx, dy);
+				return "{\"ok\":true,\"moved\":true}";
+			}
+			case "attack": {
+				Player p = user == null ? null : accounts.get(user);
+				Integer idx = intField(line, "npc");
+				if (p == null || idx == null) {
+					return "{\"ok\":false,\"error\":\"bad attack\"}";
+				}
+				for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
+					if (n != null && n.getIndex() == idx) {
+						p.getCombat().setTarget(n);
+						return "{\"ok\":true}";
+					}
+				}
+				return "{\"ok\":false,\"error\":\"no such npc\"}";
+			}
+			case "eat": {
+				Player p = user == null ? null : accounts.get(user);
+				Integer slot = intField(line, "slot");
+				if (p == null || slot == null || slot < 0 || slot >= p.getInventory().capacity()) {
+					return "{\"ok\":false,\"error\":\"bad eat\"}";
+				}
+				Item it = p.getInventory().getItems()[slot];
+				boolean ate = it != null && it.getId() > 0
+						&& com.elvarg.game.content.Food.consume(p, it.getId(), slot);
+				return "{\"ok\":true,\"ate\":" + ate + "}";
+			}
+			case "equip": {
+				Player p = user == null ? null : accounts.get(user);
+				Integer slot = intField(line, "slot");
+				if (p == null || slot == null || slot < 0 || slot >= p.getInventory().capacity()) {
+					return "{\"ok\":false,\"error\":\"bad equip\"}";
+				}
+				Item it = p.getInventory().getItems()[slot];
+				if (it == null || it.getId() <= 0) {
+					return "{\"ok\":false,\"error\":\"empty slot\"}";
+				}
+				com.elvarg.net.packet.impl.EquipPacketListener.equip(p, it.getId(), slot,
+						com.elvarg.game.model.container.impl.Inventory.INTERFACE_ID);
+				return "{\"ok\":true}";
+			}
 			default:
 				return "{\"ok\":false,\"error\":\"unknown cmd\"}";
 		}
@@ -192,6 +269,6 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + "}";
 	}
 }
