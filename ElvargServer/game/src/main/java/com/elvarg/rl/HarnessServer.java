@@ -345,6 +345,23 @@ public final class HarnessServer {
 				return "{\"ok\":true,\"reachable_tiles\":" + reached + ",\"target_reachable\":" + (best >= 0)
 						+ ",\"path_length\":" + best + "}";
 			}
+			case "dev_spawn": {
+				// DEV SANDBOX ONLY (env HARNESS_DEV=1): spawns an NPC near the account for combat-learning experiments.
+				// Never used in a certification run; reports must label any run that used it.
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer id = intField(line, "npc_id"), dx = intField(line, "dx"), dy = intField(line, "dy");
+				if (p == null || id == null || dx == null || dy == null || Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+					return "{\"ok\":false,\"error\":\"bad dev_spawn\"}";
+				}
+				com.elvarg.game.model.Location at = new com.elvarg.game.model.Location(p.getLocation().getX() + dx,
+						p.getLocation().getY() + dy, p.getLocation().getZ());
+				com.elvarg.game.entity.impl.npc.NPC n = com.elvarg.game.entity.impl.npc.NPC.create(id, at);
+				World.getAddNPCQueue().add(n);
+				return "{\"ok\":true}";
+			}
 			case "eat": {
 				Player p = user == null ? null : accounts.get(user);
 				Integer slot = intField(line, "slot");
