@@ -185,6 +185,10 @@ public class Server {
             }
 
             new MinimalSocketServer(7070).start();
+            String harnessPort = System.getenv("HARNESS_PORT");
+            if (harnessPort != null && !harnessPort.isEmpty()) {
+                com.elvarg.rl.HarnessServer.start(Integer.parseInt(harnessPort));
+            }
             EventManager.INSTANCE.post(new ServerStartedEvent());
         } catch (Exception e) {
             logger.log(Level.SEVERE, "An error occurred while binding the Bootstrap!", e);

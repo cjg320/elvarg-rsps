@@ -581,7 +581,7 @@ public class Player extends Mobile {
 		TaskManager.cancelTasks(this);
 		PLAYER_PERSISTENCE.save(this);
 
-		if (getSession() != null && getSession().getChannel().isOpen()) {
+		if (getSession() != null && getSession().getChannel() != null && getSession().getChannel().isOpen()) {
 			getSession().getChannel().close();
 		}
 	}
