@@ -93,6 +93,9 @@ public class NPC extends Mobile {
 	 * For PestControl
 	 */
 	public boolean needRespawn;
+
+	/** Dev sandbox NPCs (HarnessServer dev_spawn) do not respawn on their own; the harness controls the encounter. */
+	public boolean devNoRespawn;
 	public static int maxNPCs = 5000;
 	public static int maxListedNPCs = 5000;
 	public static NPC npcs[] = new NPC[maxNPCs];

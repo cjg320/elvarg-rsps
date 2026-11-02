@@ -115,7 +115,7 @@ public class NPCDeathTask extends Task {
         npc.setNpcTransformationId(-1);
 
         // Handle respawn..
-        if (npc.getDefinition().getRespawn() > 0) {
+        if (npc.getDefinition().getRespawn() > 0 && !npc.devNoRespawn) {
             TaskManager.submit(new NPCRespawnTask(npc, npc.getDefinition().getRespawn()));
         }
 

@@ -59,6 +59,7 @@ public final class HarnessServer {
 	private record Deferred(Pending p, long dueTick) {
 	}
 
+	private static final Map<String, java.util.List<com.elvarg.game.entity.impl.npc.NPC>> devNpcs = new ConcurrentHashMap<>();
 	private static final java.util.List<Deferred> deferred = new java.util.ArrayList<>();
 
 	private static void run(Pending p) {
@@ -369,6 +370,23 @@ public final class HarnessServer {
 				return "{\"ok\":true,\"reachable_tiles\":" + reached + ",\"target_reachable\":" + (best >= 0)
 						+ ",\"path_length\":" + best + "}";
 			}
+			case "dev_clear": {
+				// DEV SANDBOX ONLY: removes every NPC this account's dev_spawn created (no respawn is pending for them).
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				java.util.List<com.elvarg.game.entity.impl.npc.NPC> l = user == null ? null : devNpcs.remove(user);
+				int n = 0;
+				if (l != null) {
+					for (com.elvarg.game.entity.impl.npc.NPC x : l) {
+						if (x.isRegistered()) {
+							x.remove();
+							n++;
+						}
+					}
+				}
+				return "{\"ok\":true,\"removed\":" + n + "}";
+			}
 			case "dev_spawn": {
 				// DEV SANDBOX ONLY (env HARNESS_DEV=1): spawns an NPC near the account for combat-learning experiments.
 				// Never used in a certification run; reports must label any run that used it.
@@ -383,6 +401,8 @@ public final class HarnessServer {
 				com.elvarg.game.model.Location at = new com.elvarg.game.model.Location(p.getLocation().getX() + dx,
 						p.getLocation().getY() + dy, p.getLocation().getZ());
 				com.elvarg.game.entity.impl.npc.NPC n = com.elvarg.game.entity.impl.npc.NPC.create(id, at);
+				n.devNoRespawn = true;
+				devNpcs.computeIfAbsent(user, k -> new java.util.ArrayList<>()).add(n);
 				World.getAddNPCQueue().add(n);
 				return "{\"ok\":true}";
 			}
@@ -476,6 +496,6 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 }
