@@ -88,8 +88,31 @@ public class GameConstants {
 	/**
 	 * Multiplies the experience gained.
 	 */
-	public static final double COMBAT_SKILLS_EXP_MULTIPLIER = 6;
-	public static final double REGULAR_SKILLS_EXP_MULTIPLIER = 18;
+	public static final double COMBAT_SKILLS_EXP_MULTIPLIER = xpRate(6);
+	public static final double REGULAR_SKILLS_EXP_MULTIPLIER = xpRate(18);
+
+	/**
+	 * M1 (docs/MISSION.md success criterion 2): env XP_RATE_OVERRIDE REPLACES both stock multipliers (6 combat,
+	 * 18 regular) with one value, e.g. 1 for the certification run's normal rates. Unset = stock rates.
+	 * An invalid value (not a number, or not in (0, 1000]) aborts startup rather than silently using stock.
+	 */
+	private static double xpRate(double stock) {
+		String v = System.getenv("XP_RATE_OVERRIDE");
+		if (v == null || v.trim().isEmpty()) {
+			return stock;
+		}
+		double r;
+		try {
+			r = Double.parseDouble(v.trim());
+		} catch (NumberFormatException e) {
+			throw new IllegalStateException("Invalid XP_RATE_OVERRIDE: " + v);
+		}
+		if (!(r > 0 && r <= 1000)) {
+			throw new IllegalStateException("XP_RATE_OVERRIDE out of range (0,1000]: " + v);
+		}
+		System.out.println("[XP] XP_RATE_OVERRIDE=" + r + " replaces stock multiplier " + stock);
+		return r;
+	}
 
 	/**
 	 * Enabled debugging of attack distance for {@link PlayerRights} DEVELOPER
