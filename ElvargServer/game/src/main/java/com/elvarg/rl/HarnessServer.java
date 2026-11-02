@@ -83,12 +83,36 @@ public final class HarnessServer {
 					protected void initChannel(SocketChannel ch) {
 						ch.pipeline().addLast(new LineBasedFrameDecoder(8192), new StringDecoder(StandardCharsets.UTF_8),
 								new StringEncoder(StandardCharsets.UTF_8), new SimpleChannelInboundHandler<String>() {
+									// Accounts logged in over this connection: logged out (and saved through the stock
+									// path) if the client disconnects without a logout, so sessions cannot leak.
+									private final java.util.Set<String> mine = ConcurrentHashMap.newKeySet();
+
 									@Override
 									protected void channelRead0(ChannelHandlerContext ctx, String msg) {
 										var f = new java.util.concurrent.CompletableFuture<String>();
 										queue.add(new Pending(msg, f));
-										f.whenCompleteAsync((r, e) -> ctx.writeAndFlush((e == null ? r : "{\"ok\":false}") + "\n"),
-												ctx.executor());
+										String cmd = field(msg, "cmd");
+										String u = field(msg, "user");
+										f.whenCompleteAsync((r, e) -> {
+											if (e == null && r != null && r.startsWith("{\"ok\":true") && u != null) {
+												if ("login".equals(cmd)) {
+													mine.add(u);
+												} else if ("logout".equals(cmd)) {
+													mine.remove(u);
+												}
+											}
+											ctx.writeAndFlush((e == null ? r : "{\"ok\":false}") + "\n");
+										}, ctx.executor());
+									}
+
+									@Override
+									public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+										for (String u : mine) {
+											queue.add(new Pending("{\"cmd\":\"logout\",\"user\":\"" + u + "\"}",
+													new java.util.concurrent.CompletableFuture<String>()));
+										}
+										mine.clear();
+										super.channelInactive(ctx);
 									}
 								});
 					}
