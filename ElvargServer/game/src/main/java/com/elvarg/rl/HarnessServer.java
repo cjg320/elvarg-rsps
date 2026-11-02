@@ -205,7 +205,7 @@ public final class HarnessServer {
 				}
 				for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
 					if (n != null && n.getIndex() == idx) {
-						p.getCombat().setTarget(n);
+						p.getCombat().attack(n);
 						return "{\"ok\":true}";
 					}
 				}
