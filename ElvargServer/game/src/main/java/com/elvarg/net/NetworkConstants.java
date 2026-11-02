@@ -16,7 +16,7 @@ public class NetworkConstants {
     /**
      * The game port
      */
-    public static final int GAME_PORT = 43595;
+    public static final int GAME_PORT = System.getenv("GAME_PORT") == null ? 43595 : Integer.parseInt(System.getenv("GAME_PORT"));
 
     /**
      * The opcode for requesting a login.
