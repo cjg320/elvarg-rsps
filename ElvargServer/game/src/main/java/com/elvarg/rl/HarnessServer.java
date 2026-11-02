@@ -122,7 +122,9 @@ public final class HarnessServer {
 			}
 			sb.append(first ? "" : ",").append("[").append(n.getIndex()).append(",").append(n.getId()).append(",")
 					.append(n.getLocation().getX()).append(",").append(n.getLocation().getY()).append(",")
-					.append(healthBar(n)).append("]");
+					.append(healthBar(n)).append(",")
+					.append(n.getDefinition() != null && n.getDefinition().isAttackable() ? 1 : 0).append(",")
+					.append(n.getDefinition() == null ? 0 : n.getDefinition().getCombatLevel()).append("]");
 			first = false;
 		}
 		return sb.append("]").toString();
@@ -215,6 +217,9 @@ public final class HarnessServer {
 				}
 				for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
 					if (n != null && n.getIndex() == idx) {
+						if (n.getDefinition() == null || !n.getDefinition().isAttackable()) {
+							return "{\"ok\":false,\"error\":\"not attackable\"}";
+						}
 						if (n.isDying() || n.getHitpoints() <= 0 || p.getHitpoints() <= 0) {
 							return "{\"ok\":false,\"error\":\"cannot attack\"}";
 						}
@@ -223,6 +228,26 @@ public final class HarnessServer {
 					}
 				}
 				return "{\"ok\":false,\"error\":\"no such npc\"}";
+			}
+			case "teleport": {
+				// Same selection the client sends from the teleport interface: Teleportable by name (e.g. "BARROWS").
+				Player p = user == null ? null : accounts.get(user);
+				String name = field(line, "name");
+				if (p == null || name == null) {
+					return "{\"ok\":false,\"error\":\"bad teleport\"}";
+				}
+				com.elvarg.game.model.teleportation.Teleportable t;
+				try {
+					t = com.elvarg.game.model.teleportation.Teleportable.valueOf(name);
+				} catch (IllegalArgumentException e) {
+					return "{\"ok\":false,\"error\":\"unknown destination\"}";
+				}
+				if (!com.elvarg.game.model.teleportation.TeleportHandler.checkReqs(p, t.getPosition())) {
+					return "{\"ok\":false,\"error\":\"teleport refused\"}";
+				}
+				p.getPreviousTeleports().put(t.getTeleportButton(), t.getPosition());
+				com.elvarg.game.model.teleportation.TeleportHandler.teleport(p, t.getPosition(), p.getSpellbook().getTeleportType(), true);
+				return "{\"ok\":true}";
 			}
 			case "eat": {
 				Player p = user == null ? null : accounts.get(user);
