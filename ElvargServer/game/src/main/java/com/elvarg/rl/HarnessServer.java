@@ -298,6 +298,53 @@ public final class HarnessServer {
 				}
 				return "{\"ok\":true}";
 			}
+			case "diag_reach": {
+				// DIAGNOSTIC ONLY (never a policy input): BFS over the static collision map from (sx,sy,z) inside a search
+				// window, reports whether a target box is reachable on foot and the path length to it.
+				Integer sx = intField(line, "sx"), sy = intField(line, "sy"), z = intField(line, "z");
+				Integer wx0 = intField(line, "wx0"), wx1 = intField(line, "wx1"), wy0 = intField(line, "wy0"), wy1 = intField(line, "wy1");
+				Integer tx0 = intField(line, "tx0"), tx1 = intField(line, "tx1"), ty0 = intField(line, "ty0"), ty1 = intField(line, "ty1");
+				if (sx == null || sy == null || z == null || wx0 == null || wx1 == null || wy0 == null || wy1 == null
+						|| tx0 == null || tx1 == null || ty0 == null || ty1 == null || (wx1 - wx0) * (wy1 - wy0) > 4_000_000) {
+					return "{\"ok\":false,\"error\":\"bad diag_reach\"}";
+				}
+				int w = wx1 - wx0 + 1, h = wy1 - wy0 + 1;
+				int[] dist = new int[w * h];
+				java.util.Arrays.fill(dist, -1);
+				java.util.ArrayDeque<int[]> dq = new java.util.ArrayDeque<>();
+				dist[(sy - wy0) * w + (sx - wx0)] = 0;
+				dq.add(new int[] { sx, sy });
+				int reached = 0, best = -1;
+				com.elvarg.game.model.Direction[] dirs = com.elvarg.game.model.Direction.values();
+				while (!dq.isEmpty()) {
+					int[] c = dq.poll();
+					int d0 = dist[(c[1] - wy0) * w + (c[0] - wx0)];
+					reached++;
+					if (c[0] >= tx0 && c[0] <= tx1 && c[1] >= ty0 && c[1] <= ty1 && best < 0) {
+						best = d0;
+					}
+					com.elvarg.game.model.Location here = new com.elvarg.game.model.Location(c[0], c[1], z);
+					for (com.elvarg.game.model.Direction d : dirs) {
+						if (d.getId() < 0 || d.getId() > 7 || (d.getX() == 0 && d.getY() == 0)) {
+							continue;
+						}
+						int nx = c[0] + d.getX(), ny = c[1] + d.getY();
+						if (nx < wx0 || nx > wx1 || ny < wy0 || ny > wy1 || dist[(ny - wy0) * w + (nx - wx0)] >= 0) {
+							continue;
+						}
+						if (!com.elvarg.game.collision.RegionManager.canMove(here, d.getId(), null)) {
+							continue;
+						}
+						if (com.elvarg.game.collision.RegionManager.blocked(nx, ny, z)) {
+							continue;
+						}
+						dist[(ny - wy0) * w + (nx - wx0)] = d0 + 1;
+						dq.add(new int[] { nx, ny });
+					}
+				}
+				return "{\"ok\":true,\"reachable_tiles\":" + reached + ",\"target_reachable\":" + (best >= 0)
+						+ ",\"path_length\":" + best + "}";
+			}
 			case "eat": {
 				Player p = user == null ? null : accounts.get(user);
 				Integer slot = intField(line, "slot");
