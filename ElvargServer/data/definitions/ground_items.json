@@ -19875,5 +19875,12 @@
     "amt": 1,
     "respawn": 0,
     "description": "UNDIFINED"
+  },
+  {
+    "id": 1965,
+    "location": {"x": 3217, "y": 9622, "z": 0},
+    "amt": 1,
+    "respawn": 100,
+    "description": "Lumbridge Castle cellar cabbage (OSRS Wiki Cabbage item spawns)"
   }
 ]

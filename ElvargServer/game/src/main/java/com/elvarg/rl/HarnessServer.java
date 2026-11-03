@@ -393,6 +393,33 @@ public final class HarnessServer {
 				return "{\"ok\":true,\"reachable_tiles\":" + reached + ",\"target_reachable\":" + (best >= 0)
 						+ ",\"path_length\":" + best + "}";
 			}
+			case "diag_objects": {
+				// DIAGNOSTIC ONLY (never a policy input): static map objects in a box on one plane, for content verification.
+				Integer ox0 = intField(line, "x0"), ox1 = intField(line, "x1"), oy0 = intField(line, "y0"), oy1 = intField(line, "y1"), oz = intField(line, "z");
+				if (ox0 == null || ox1 == null || oy0 == null || oy1 == null || oz == null || (ox1 - ox0 + 1) * (oy1 - oy0 + 1) > 40000) {
+					return "{\"ok\":false,\"error\":\"bad diag_objects\"}";
+				}
+				com.elvarg.game.collision.RegionManager.loadMapFiles(ox0, oy0);
+				com.elvarg.game.collision.RegionManager.loadMapFiles(ox1, oy1);
+				StringBuilder sb = new StringBuilder("{\"ok\":true,\"objects\":[");
+				boolean first = true;
+				for (int ox = ox0; ox <= ox1; ox++) {
+					for (int oy = oy0; oy <= oy1; oy++) {
+						java.util.ArrayList<com.elvarg.game.entity.impl.object.GameObject> l = com.elvarg.game.entity.impl.object.MapObjects.mapObjects
+								.get(com.elvarg.game.entity.impl.object.MapObjects.getHash(ox, oy, oz));
+						if (l == null) {
+							continue;
+						}
+						for (com.elvarg.game.entity.impl.object.GameObject go : l) {
+							sb.append(first ? "" : ",").append("[").append(go.getId()).append(",").append(ox).append(",").append(oy)
+									.append(",").append(go.getType()).append(",").append(go.getFace()).append(",\"")
+									.append(esc(String.valueOf(com.elvarg.game.definition.ObjectDefinition.forId(go.getId()) == null ? "" : com.elvarg.game.definition.ObjectDefinition.forId(go.getId()).name))).append("\"]");
+							first = false;
+						}
+					}
+				}
+				return sb.append("]}").toString();
+			}
 			case "dev_clear": {
 				// DEV SANDBOX ONLY: removes every NPC this account's dev_spawn created (no respawn is pending for them).
 				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
@@ -409,6 +436,57 @@ public final class HarnessServer {
 					}
 				}
 				return "{\"ok\":true,\"removed\":" + n + "}";
+			}
+			case "diag_ground": {
+				// DIAGNOSTIC ONLY: ground items in a box on one plane (id, amount, tile, state, pending-removal).
+				Integer gx0 = intField(line, "x0"), gx1 = intField(line, "x1"), gy0 = intField(line, "y0"), gy1 = intField(line, "y1"), gz = intField(line, "z");
+				if (gx0 == null || gx1 == null || gy0 == null || gy1 == null || gz == null) {
+					return "{\"ok\":false,\"error\":\"bad diag_ground\"}";
+				}
+				StringBuilder sb = new StringBuilder("{\"ok\":true,\"items\":[");
+				boolean first = true;
+				java.util.Iterator<com.elvarg.game.entity.impl.grounditem.ItemOnGround> it = com.elvarg.game.World.getItems().iterator();
+				while (it.hasNext()) {
+					com.elvarg.game.entity.impl.grounditem.ItemOnGround g = it.next();
+					if (g == null) {
+						continue;
+					}
+					com.elvarg.game.model.Location gl = g.getLocation();
+					if (gl.getZ() != gz || gl.getX() < gx0 || gl.getX() > gx1 || gl.getY() < gy0 || gl.getY() > gy1) {
+						continue;
+					}
+					sb.append(first ? "" : ",").append("[").append(g.getItem().getId()).append(",").append(g.getItem().getAmount()).append(",")
+							.append(gl.getX()).append(",").append(gl.getY()).append(",\"").append(g.getState()).append("\",")
+							.append(g.isPendingRemoval()).append("]");
+					first = false;
+				}
+				return sb.append("]}").toString();
+			}
+			case "dev_move": {
+				// DEV SANDBOX ONLY: places the account on a tile (probe setup; never used in training).
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer mx = intField(line, "x"), my = intField(line, "y"), mz = intField(line, "z");
+				if (p == null || mx == null || my == null || mz == null) {
+					return "{\"ok\":false,\"error\":\"bad dev_move\"}";
+				}
+				p.moveTo(new com.elvarg.game.model.Location(mx, my, mz));
+				return "{\"ok\":true}";
+			}
+			case "dev_hurt": {
+				// DEV SANDBOX ONLY: sets current hitpoints (to set up eating tests; never used in training).
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer hp = intField(line, "hp");
+				if (p == null || hp == null || hp < 1) {
+					return "{\"ok\":false,\"error\":\"bad dev_hurt\"}";
+				}
+				p.setHitpoints(hp);
+				return "{\"ok\":true,\"hp\":" + p.getHitpoints() + "}";
 			}
 			case "dev_give": {
 				// DEV SANDBOX ONLY: puts items in the inventory (e.g. food) so recovery behaviour can be learned.

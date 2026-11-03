@@ -78,6 +78,18 @@ public class ObjectActionPacketListener extends ObjectIdentifiers implements Pac
             return;
         }
 
+        // Lumbridge Castle kitchen trapdoor (14880 at 3209,3216) and cellar ladder (17385 at 3209,9616). Object ids and
+        // tiles from the static map (diag_objects); the trapdoor option is "Climb-down" per the OSRS Wiki. Ladder 17385
+        // is used elsewhere, so it is matched by location. Landing tiles are our choice (wiki gives none): just below/above.
+        if (object.getId() == 14880 && object.getLocation().getX() == 3209 && object.getLocation().getY() == 3216) {
+            TeleportHandler.teleport(player, new Location(3209, 9617), TeleportType.LADDER_DOWN, false);
+            return;
+        }
+        if (object.getId() == 17385 && object.getLocation().getX() == 3209 && object.getLocation().getY() == 9616) {
+            TeleportHandler.teleport(player, new Location(3210, 3216), TeleportType.LADDER_UP, false);
+            return;
+        }
+
         switch (object.getId()) {
             case WEB:
                 if (!WebHandler.wieldingSharpItem(player)) {
