@@ -948,7 +948,8 @@ public class CombatFactory {
 
 	/** OSRS rules: see GameConstants.OSRS_XP_RULES. */
 	private static void rewardExpOsrs(Player player, PendingHit hit) {
-		final int dmg = hit.getTotalDamage();
+		// Experience is for damage actually dealt: never more than the target's remaining hitpoints (no overkill XP).
+		final int dmg = hit.getTarget() == null ? hit.getTotalDamage() : Math.min(hit.getTotalDamage(), Math.max(0, hit.getTarget().getHitpoints()));
 		if (hit.getCombatType() == CombatType.MAGIC) {
 			if (player.getCombat().getPreviousCast() == null) {
 				return;
