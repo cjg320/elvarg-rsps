@@ -48,7 +48,7 @@ import java.util.regex.Pattern;
 public final class HarnessServer {
 
 	private static final Logger logger = Logger.getLogger(HarnessServer.class.getSimpleName());
-	public static final int PROTOCOL_VERSION = 1;
+	public static final int PROTOCOL_VERSION = 2;
 	private static final Map<String, Player> accounts = new ConcurrentHashMap<>();
 	private static final Queue<Pending> queue = new ConcurrentLinkedQueue<>();
 	private static long tickCount = 0;
@@ -179,6 +179,74 @@ public final class HarnessServer {
 					.append(healthBarShown(n)).append(",")
 					.append(n.getDefinition() != null && n.getDefinition().isAttackable() ? 1 : 0).append(",")
 					.append(n.getDefinition() == null ? 0 : n.getDefinition().getCombatLevel()).append("]");
+			first = false;
+		}
+		return sb.append("]").toString();
+	}
+
+
+	/**
+	 * Ground items a player can see: same plane, same instance, within 15 tiles, and either global or their own.
+	 * [item id, amount, x, y]. No respawn timers or other hidden state.
+	 */
+	private static String groundItems(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		java.util.Iterator<com.elvarg.game.entity.impl.grounditem.ItemOnGround> it = World.getItems().iterator();
+		while (it.hasNext()) {
+			com.elvarg.game.entity.impl.grounditem.ItemOnGround g = it.next();
+			if (g == null || g.isPendingRemoval() || g.getLocation().getZ() != p.getLocation().getZ()
+					|| g.getPrivateArea() != p.getPrivateArea() || g.getLocation().getDistance(p.getLocation()) > 15) {
+				continue;
+			}
+			if (g.getState() == com.elvarg.game.entity.impl.grounditem.ItemOnGround.State.SEEN_BY_PLAYER
+					&& !com.elvarg.game.entity.impl.grounditem.ItemOnGroundManager.isOwner(p.getUsername(), g)) {
+				continue;
+			}
+			sb.append(first ? "" : ",").append("[").append(g.getItem().getId()).append(",").append(g.getItem().getAmount()).append(",")
+					.append(g.getLocation().getX()).append(",").append(g.getLocation().getY()).append("]");
+			first = false;
+		}
+		return sb.append("]").toString();
+	}
+
+	/**
+	 * Scenery objects with at least one visible menu option within 8 tiles on the player's plane/instance:
+	 * [object id, x, y, first menu option text]. The option text is what the client shows on hover.
+	 */
+	private static String interactableObjects(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		int px = p.getLocation().getX(), py = p.getLocation().getY(), pz = p.getLocation().getZ();
+		java.util.List<com.elvarg.game.entity.impl.object.GameObject> found = new java.util.ArrayList<>();
+		if (p.getPrivateArea() != null) {
+			for (com.elvarg.game.entity.impl.object.GameObject go : p.getPrivateArea().getObjects()) {
+				if (go.getLocation().getZ() == pz && go.getLocation().getDistance(p.getLocation()) <= 8) {
+					found.add(go);
+				}
+			}
+		} else {
+			// Map objects are loaded lazily per region (as MapObjects.get does); make sure the player's surroundings are in.
+			com.elvarg.game.collision.RegionManager.loadMapFiles(px - 8, py - 8);
+			com.elvarg.game.collision.RegionManager.loadMapFiles(px + 8, py + 8);
+			for (int x = px - 8; x <= px + 8; x++) {
+				for (int y = py - 8; y <= py + 8; y++) {
+					java.util.ArrayList<com.elvarg.game.entity.impl.object.GameObject> l = com.elvarg.game.entity.impl.object.MapObjects.mapObjects
+							.get(com.elvarg.game.entity.impl.object.MapObjects.getHash(x, y, pz));
+					if (l != null) {
+						found.addAll(l);
+					}
+				}
+			}
+		}
+		for (com.elvarg.game.entity.impl.object.GameObject go : found) {
+			com.elvarg.game.definition.ObjectDefinition d = com.elvarg.game.definition.ObjectDefinition.forId(go.getId());
+			if (d == null || d.interactions == null || d.interactions.length == 0 || d.interactions[0] == null
+					|| d.interactions[0].isEmpty()) {
+				continue;
+			}
+			sb.append(first ? "" : ",").append("[").append(go.getId()).append(",").append(go.getLocation().getX()).append(",")
+					.append(go.getLocation().getY()).append(",\"").append(esc(d.interactions[0])).append("\"]");
 			first = false;
 		}
 		return sb.append("]").toString();
@@ -413,7 +481,7 @@ public final class HarnessServer {
 						for (com.elvarg.game.entity.impl.object.GameObject go : l) {
 							sb.append(first ? "" : ",").append("[").append(go.getId()).append(",").append(ox).append(",").append(oy)
 									.append(",").append(go.getType()).append(",").append(go.getFace()).append(",\"")
-									.append(esc(String.valueOf(com.elvarg.game.definition.ObjectDefinition.forId(go.getId()) == null ? "" : com.elvarg.game.definition.ObjectDefinition.forId(go.getId()).name))).append("\"]");
+									.append(esc(String.valueOf(com.elvarg.game.definition.ObjectDefinition.forId(go.getId()) == null ? "" : com.elvarg.game.definition.ObjectDefinition.forId(go.getId()).name))).append("\",\"").append(esc(java.util.Arrays.toString(com.elvarg.game.definition.ObjectDefinition.forId(go.getId()) == null ? null : com.elvarg.game.definition.ObjectDefinition.forId(go.getId()).interactions))).append("\"]");
 							first = false;
 						}
 					}
@@ -611,7 +679,7 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 
 	/**
