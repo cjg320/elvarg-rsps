@@ -434,7 +434,13 @@ public abstract class Mobile extends Entity {
 		return this;
 	}
 
+	/** Harness tick at which this mobile last lost hitpoints (drives the on-screen health bar timing). */
+	public long lastDamagedGameTick = -1000;
+
 	public HitDamage decrementHealth(HitDamage hit) {
+		if (hit.getDamage() > 0) {
+			lastDamagedGameTick = com.elvarg.rl.HarnessServer.currentTick();
+		}
 		if (getHitpoints() <= 0) {
 			hit.setDamage(0);
 			return hit;
