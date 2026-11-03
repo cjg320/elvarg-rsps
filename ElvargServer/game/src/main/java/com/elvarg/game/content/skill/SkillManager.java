@@ -73,7 +73,7 @@ public class SkillManager {
 			skills.experience[i] = 0;
 		}
 		skills.level[Skill.HITPOINTS.ordinal()] = skills.maxLevel[Skill.HITPOINTS.ordinal()] = 10;
-		skills.experience[Skill.HITPOINTS.ordinal()] = 1184;
+		skills.experience[Skill.HITPOINTS.ordinal()] = 1154;
 	}
 
 	/**
