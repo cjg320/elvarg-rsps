@@ -235,6 +235,9 @@ public final class HarnessServer {
 				if (res != LoginResponses.LOGIN_SUCCESSFUL) {
 					return "{\"ok\":false,\"error\":\"login response " + res + "\"}";
 				}
+				if (p.isNewPlayer() && "reward_list".equals(System.getenv("STARTER_KIT"))) {
+					grantStarterKit(p);
+				}
 				accounts.put(user, p);
 				World.getAddPlayerQueue().add(p);
 				return "{\"ok\":true,\"new\":" + p.isNewPlayer() + ",\"protocol_version\":" + PROTOCOL_VERSION + "}";
@@ -531,5 +534,20 @@ public final class HarnessServer {
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
 				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+	}
+
+	/**
+	 * One-time kit for a NEW harness account only (env STARTER_KIT=reward_list). Items are the OSRS Wiki
+	 * "Learning the Ropes" reward list (inventory) plus 25 coins in the bank. Placement and empty equipment are
+	 * initialization choices, not verified arrival facts. Never called for a loaded (retained) character.
+	 */
+	private static void grantStarterKit(Player p) {
+		int[][] kit = {{1351, 1}, {1265, 1}, {590, 1}, {303, 1}, {315, 1}, {1205, 1}, {1277, 1}, {1171, 1},
+				{841, 1}, {882, 25}, {556, 25}, {558, 15}, {1925, 1}, {1931, 1}, {2309, 1}, {555, 6}, {557, 4},
+				{559, 2}};
+		for (int[] it : kit) {
+			p.getInventory().add(new Item(it[0], it[1]), false);
+		}
+		p.getBank(0).add(new Item(995, 25), false);
 	}
 }
