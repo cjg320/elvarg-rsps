@@ -207,7 +207,14 @@ public final class HarnessServer {
 				if (accounts.containsKey(user)) {
 					return "{\"ok\":false,\"error\":\"already logged in\"}";
 				}
-				Player p = new Player(new PlayerBotSession());
+				// New accounts start at Lumbridge (3222,3218), like the real game after Tutorial Island; saved accounts load their own position.
+				String spawnEnv = System.getenv("HARNESS_NEW_ACCOUNT_SPAWN");   // "x,y" override (tests); default Lumbridge
+				int sx = 3222, sy = 3218;
+				if (spawnEnv != null && spawnEnv.matches("\\d+,\\d+")) {
+					sx = Integer.parseInt(spawnEnv.split(",")[0]);
+					sy = Integer.parseInt(spawnEnv.split(",")[1]);
+				}
+				Player p = new Player(new PlayerBotSession(), new com.elvarg.game.model.Location(sx, sy));
 				p.setHarnessAccount(true);
 				p.setUsername(user).setLongUsername(Misc.stringToLong(user)).setHostAddress("127.0.0.1");
 				LoginDetailsMessage msg = new LoginDetailsMessage(null, user, pass, "127.0.0.1", null, null);

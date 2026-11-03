@@ -51,7 +51,7 @@ public class World {
 	/**
 	 * The collection of active {@link NPC}s.
 	 */
-	private static MobileList<NPC> npcs = new MobileList<>(5000);
+	private static MobileList<NPC> npcs = new MobileList<>(30000);
 
 	/**
 	 * The collection of active {@link ItemOnGround}s..
