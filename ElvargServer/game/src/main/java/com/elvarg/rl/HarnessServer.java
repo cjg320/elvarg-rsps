@@ -53,6 +53,10 @@ public final class HarnessServer {
 	private static final Queue<Pending> queue = new ConcurrentLinkedQueue<>();
 	private static long tickCount = 0;
 
+	public static long currentTick() {
+		return tickCount;
+	}
+
 	private record Pending(String line, java.util.concurrent.CompletableFuture<String> reply) {
 	}
 
@@ -165,18 +169,27 @@ public final class HarnessServer {
 		StringBuilder sb = new StringBuilder("[");
 		boolean first = true;
 		for (com.elvarg.game.entity.impl.npc.NPC n : World.getNpcs()) {
+			// Visible like on the client: same plane, within the view distance, same private area (instance).
 			if (n == null || n.isDying() || n.getHitpoints() <= 0 || n.getLocation().getZ() != p.getLocation().getZ()
-					|| n.getLocation().getDistance(p.getLocation()) > 15) {
+					|| n.getLocation().getDistance(p.getLocation()) > 15 || n.getPrivateArea() != p.getPrivateArea()) {
 				continue;
 			}
 			sb.append(first ? "" : ",").append("[").append(n.getIndex()).append(",").append(n.getId()).append(",")
 					.append(n.getLocation().getX()).append(",").append(n.getLocation().getY()).append(",")
-					.append(healthBar(n)).append(",")
+					.append(healthBarShown(n)).append(",")
 					.append(n.getDefinition() != null && n.getDefinition().isAttackable() ? 1 : 0).append(",")
 					.append(n.getDefinition() == null ? 0 : n.getDefinition().getCombatLevel()).append("]");
 			first = false;
 		}
 		return sb.append("]").toString();
+	}
+
+	/**
+	 * The bar a player actually sees: the client only draws an NPC's health bar for about 6 seconds (10 ticks) after it
+	 * took damage; otherwise nothing is shown and the value is 0 (a shown bar is always at least 1 pixel).
+	 */
+	private static int healthBarShown(com.elvarg.game.entity.impl.npc.NPC n) {
+		return tickCount - n.lastDamagedGameTick <= 10 ? healthBar(n) : 0;
 	}
 
 	/** Health bar as a player sees it: 0..30 pixels, never the exact hitpoints. */
