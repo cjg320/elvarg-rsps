@@ -1089,7 +1089,7 @@
   "description": "Ankou - The Forgotten Cemetery (OSRS Wiki)"
  },
  {
-  "id": 642,
+  "id": 643,
   "position": {
    "x": 2828,
    "y": 10095,
@@ -1351,50 +1351,6 @@
   "facing": "SOUTH",
   "radius": 3,
   "description": "Baby black dragon - Evil Chicken's Lair<ref group \"l\">Requires a rope and partial completion of Recipe for Disaster: Sir Amik Varze</ref> (OSRS Wiki)"
- },
- {
-  "id": 244,
-  "position": {
-   "x": 1889,
-   "y": 8995,
-   "z": 1
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Baby dragon - Corsair Cove Dungeon/Myths' Guild|Myths' Guild (basement)<ref group \"l\">Requires completion of Dragon Slayer II</ref> (OSRS Wiki)"
- },
- {
-  "id": 244,
-  "position": {
-   "x": 1891,
-   "y": 8998,
-   "z": 1
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Baby dragon - Corsair Cove Dungeon/Myths' Guild|Myths' Guild (basement)<ref group \"l\">Requires completion of Dragon Slayer II</ref> (OSRS Wiki)"
- },
- {
-  "id": 244,
-  "position": {
-   "x": 1254,
-   "y": 9493,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Baby dragon - Dragon Nest (OSRS Wiki)"
- },
- {
-  "id": 244,
-  "position": {
-   "x": 1257,
-   "y": 9491,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Baby dragon - Dragon Nest (OSRS Wiki)"
  },
  {
   "id": 3132,
@@ -7830,83 +7786,6 @@
   "facing": "SOUTH",
   "radius": 3,
   "description": "Carnivorous chinchompa - Tlati Rainforest (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1673,
-   "y": 9625,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1671,
-   "y": 9619,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1671,
-   "y": 9616,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1669,
-   "y": 9612,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1672,
-   "y": 9611,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1673,
-   "y": 9607,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
- },
- {
-  "id": 406,
-  "position": {
-   "x": 1677,
-   "y": 9605,
-   "z": 2
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Cave crawler - Ruins of Tapoyauik - top level (OSRS Wiki)"
  },
  {
   "id": 4111,
@@ -22682,105 +22561,6 @@
   "description": "Giant Rock Crab - Tonali Cavern (OSRS Wiki)"
  },
  {
-  "id": 2261,
-  "position": {
-   "x": 1838,
-   "y": 2433,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1841,
-   "y": 2434,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1845,
-   "y": 2439,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1849,
-   "y": 2444,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1846,
-   "y": 2447,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1851,
-   "y": 2448,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1850,
-   "y": 2453,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1855,
-   "y": 2450,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
-  "id": 2261,
-  "position": {
-   "x": 1855,
-   "y": 2443,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Giant Rock Crab - Isle of Serpents {{Refn|Inaccessible as the island cannot be moored on|name=ios|group=T}} (OSRS Wiki)"
- },
- {
   "id": 2834,
   "position": {
    "x": 1288,
@@ -32945,7 +32725,7 @@
   "description": "Guard - Ardougne (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2948,
    "y": 3353,
@@ -32956,7 +32736,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3036,
    "y": 3355,
@@ -32967,7 +32747,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3041,
    "y": 3355,
@@ -32978,7 +32758,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2944,
    "y": 3376,
@@ -32989,7 +32769,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2950,
    "y": 3376,
@@ -33000,7 +32780,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2956,
    "y": 3382,
@@ -33011,7 +32791,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2962,
    "y": 3381,
@@ -33022,7 +32802,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2964,
    "y": 3376,
@@ -33033,7 +32813,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2965,
    "y": 3384,
@@ -33044,7 +32824,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2965,
    "y": 3391,
@@ -33055,7 +32835,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2968,
    "y": 3379,
@@ -33066,7 +32846,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2962,
    "y": 3398,
@@ -33077,7 +32857,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2964,
    "y": 3394,
@@ -33088,7 +32868,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2966,
    "y": 3396,
@@ -33099,7 +32879,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 2967,
    "y": 3393,
@@ -33110,7 +32890,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3006,
    "y": 3321,
@@ -33121,7 +32901,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3006,
    "y": 3323,
@@ -33132,7 +32912,7 @@
   "description": "Guard - Falador (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3007,
    "y": 3323,
@@ -33242,7 +33022,7 @@
   "description": "Guard - Falador Walls (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3205,
    "y": 3379,
@@ -33253,7 +33033,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3211,
    "y": 3378,
@@ -33264,7 +33044,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3211,
    "y": 3381,
@@ -33275,7 +33055,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3173,
    "y": 3429,
@@ -33286,7 +33066,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3175,
    "y": 3423,
@@ -33297,7 +33077,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3175,
    "y": 3428,
@@ -33308,7 +33088,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3240,
    "y": 3500,
@@ -33319,7 +33099,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3246,
    "y": 3501,
@@ -33330,7 +33110,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3271,
    "y": 3428,
@@ -33341,7 +33121,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3273,
    "y": 3430,
@@ -33352,7 +33132,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3275,
    "y": 3422,
@@ -33363,7 +33143,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3275,
    "y": 3428,
@@ -33374,7 +33154,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3180,
    "y": 3401,
@@ -33385,7 +33165,7 @@
   "description": "Guard - Varrock (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3175,
    "y": 3403,
@@ -33396,7 +33176,7 @@
   "description": "Guard - Varrock Walls (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3175,
    "y": 3414,
@@ -33407,7 +33187,7 @@
   "description": "Guard - Varrock Walls (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3206,
    "y": 3462,
@@ -33418,7 +33198,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3211,
    "y": 3463,
@@ -33429,7 +33209,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3212,
    "y": 3462,
@@ -33440,7 +33220,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3204,
    "y": 3496,
@@ -33451,7 +33231,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3213,
    "y": 3465,
@@ -33462,7 +33242,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3215,
    "y": 3464,
@@ -33473,7 +33253,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3217,
    "y": 3461,
@@ -33484,7 +33264,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=0}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3201,
    "y": 3495,
@@ -33495,7 +33275,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=1}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3204,
    "y": 3491,
@@ -33506,7 +33286,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=1}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3205,
    "y": 3494,
@@ -33517,7 +33297,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=1}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3205,
    "y": 3498,
@@ -33528,7 +33308,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=1}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3203,
    "y": 3479,
@@ -33539,7 +33319,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3204,
    "y": 3477,
@@ -33550,7 +33330,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3206,
    "y": 3478,
@@ -33561,7 +33341,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3206,
    "y": 3481,
@@ -33572,7 +33352,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3207,
    "y": 3476,
@@ -33583,7 +33363,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3208,
    "y": 3473,
@@ -33594,7 +33374,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3209,
    "y": 3471,
@@ -33605,7 +33385,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3210,
    "y": 3474,
@@ -33616,7 +33396,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3211,
    "y": 3468,
@@ -33627,7 +33407,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3221,
    "y": 3483,
@@ -33638,7 +33418,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3222,
    "y": 3470,
@@ -33649,7 +33429,7 @@
   "description": "Guard - Varrock Castle, {{FloorNumber|uk=2}} (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3085,
    "y": 3518,
@@ -33660,7 +33440,7 @@
   "description": "Guard - Edgeville (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3093,
    "y": 3518,
@@ -33671,7 +33451,7 @@
   "description": "Guard - Edgeville (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3109,
    "y": 3513,
@@ -33682,7 +33462,7 @@
   "description": "Guard - Edgeville (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3110,
    "y": 3515,
@@ -33693,7 +33473,7 @@
   "description": "Guard - Edgeville (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3114,
    "y": 3512,
@@ -33704,7 +33484,7 @@
   "description": "Guard - Edgeville (OSRS Wiki)"
  },
  {
-  "id": 3269,
+  "id": 3010,
   "position": {
    "x": 3114,
    "y": 3517,
@@ -35275,1040 +35055,6 @@
   "facing": "SOUTH",
   "radius": 3,
   "description": "Hill Giant - Catacombs of Kourend (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3372,
-   "y": 3152,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3373,
-   "y": 3148,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3375,
-   "y": 3144,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3376,
-   "y": 3150,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3379,
-   "y": 3144,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3380,
-   "y": 3152,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 3381,
-   "y": 3147,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Giants' Plateau (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1614,
-   "y": 2964,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1619,
-   "y": 2953,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1617,
-   "y": 2957,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1620,
-   "y": 2963,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1613,
-   "y": 2959,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 2098,
-  "position": {
-   "x": 1623,
-   "y": 2957,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hill Giant - Avium Savannah (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2448,
-   "y": 3329,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2448,
-   "y": 3331,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2451,
-   "y": 3330,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2443,
-   "y": 3359,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2445,
-   "y": 3359,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2445,
-   "y": 3362,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2446,
-   "y": 3357,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2447,
-   "y": 3361,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Outpost (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1832,
-   "y": 3599,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1832,
-   "y": 3608,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1832,
-   "y": 3618,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1832,
-   "y": 3624,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1833,
-   "y": 3605,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1833,
-   "y": 3628,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1834,
-   "y": 3615,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1835,
-   "y": 3621,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1836,
-   "y": 3608,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1836,
-   "y": 3612,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1836,
-   "y": 3631,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1836,
-   "y": 3635,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1837,
-   "y": 3628,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1838,
-   "y": 3614,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1838,
-   "y": 3617,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1838,
-   "y": 3640,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1840,
-   "y": 3636,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1840,
-   "y": 3642,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1841,
-   "y": 3633,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1842,
-   "y": 3638,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1842,
-   "y": 3641,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 1808,
-   "y": 3627,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - The Dibber in Hosidius (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2905,
-   "y": 3295,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2906,
-   "y": 3288,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2908,
-   "y": 3291,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2909,
-   "y": 3282,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2909,
-   "y": 3285,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2909,
-   "y": 3294,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2912,
-   "y": 3279,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2915,
-   "y": 3273,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2917,
-   "y": 3269,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2920,
-   "y": 3266,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Hobgoblin Peninsula west of the Crafting Guild (OSRS Wiki)"
- },
- {
-  "id": 3050,
-  "position": {
-   "x": 2656,
-   "y": 3720,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - North of Rellekka (OSRS Wiki)"
- },
- {
-  "id": 3050,
-  "position": {
-   "x": 2656,
-   "y": 3727,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - North of Rellekka (OSRS Wiki)"
- },
- {
-  "id": 3050,
-  "position": {
-   "x": 2661,
-   "y": 3731,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - North of Rellekka (OSRS Wiki)"
- },
- {
-  "id": 3050,
-  "position": {
-   "x": 2669,
-   "y": 3725,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - North of Rellekka (OSRS Wiki)"
- },
- {
-  "id": 3050,
-  "position": {
-   "x": 2675,
-   "y": 3731,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - North of Rellekka (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2503,
-   "y": 3730,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Waterbirth Island (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2526,
-   "y": 3739,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Waterbirth Island (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2787,
-   "y": 3013,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - South of Tai Bwo Wannai (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2791,
-   "y": 3013,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - South of Tai Bwo Wannai (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2794,
-   "y": 3013,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - South of Tai Bwo Wannai (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2818,
-   "y": 3291,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Crandor (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2822,
-   "y": 3282,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Crandor (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2822,
-   "y": 3288,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Crandor (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2824,
-   "y": 3298,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Crandor (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 2834,
-   "y": 3305,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Crandor (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3075,
-   "y": 3748,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3076,
-   "y": 3774,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3078,
-   "y": 3742,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3078,
-   "y": 3754,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3078,
-   "y": 3764,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3080,
-   "y": 3750,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3080,
-   "y": 3759,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3081,
-   "y": 3770,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3083,
-   "y": 3766,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3085,
-   "y": 3742,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3085,
-   "y": 3757,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3085,
-   "y": 3773,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3087,
-   "y": 3752,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3088,
-   "y": 3758,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3088,
-   "y": 3765,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3089,
-   "y": 3770,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3092,
-   "y": 3756,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3092,
-   "y": 3763,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3094,
-   "y": 3746,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3094,
-   "y": 3772,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3096,
-   "y": 3767,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3097,
-   "y": 3756,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3097,
-   "y": 3761,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3099,
-   "y": 3770,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3105,
-   "y": 3763,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
- },
- {
-  "id": 3049,
-  "position": {
-   "x": 3107,
-   "y": 3758,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Hobgoblin - Bandit Camp mine (Wilderness) (OSRS Wiki)"
  },
  {
   "id": 4110,
@@ -42845,7 +41591,7 @@
   "description": "Jungle spider - Brimhaven (OSRS Wiki)"
  },
  {
-  "id": 7104,
+  "id": 7105,
   "position": {
    "x": 2543,
    "y": 3031,
@@ -43692,7 +42438,7 @@
   "description": "Khazard trooper - West Ardougne (near the Khazard warlord) (OSRS Wiki)"
  },
  {
-  "id": 7621,
+  "id": 7622,
   "position": {
    "x": 2457,
    "y": 3302,
@@ -74118,7 +72864,7 @@
   "description": "Sofiya - Canifis (OSRS Wiki)"
  },
  {
-  "id": 6904,
+  "id": 6905,
   "position": {
    "x": 1540,
    "y": 3624,
@@ -74129,7 +72875,7 @@
   "description": "Soldier (tier 1) - Combat Ring (Shayzien)|Combat Ring in the Shayzien Encampment (OSRS Wiki)"
  },
  {
-  "id": 6906,
+  "id": 6907,
   "position": {
    "x": 1545,
    "y": 3619,
@@ -74140,7 +72886,7 @@
   "description": "Soldier (tier 2) - Combat Ring (Shayzien)|Combat Ring in the Shayzien Encampment (OSRS Wiki)"
  },
  {
-  "id": 6908,
+  "id": 6909,
   "position": {
    "x": 1544,
    "y": 3626,
@@ -74151,7 +72897,7 @@
   "description": "Soldier (tier 3) - Combat Ring (Shayzien)|Combat Ring in the Shayzien Encampment (OSRS Wiki)"
  },
  {
-  "id": 6910,
+  "id": 6911,
   "position": {
    "x": 1541,
    "y": 3619,
@@ -74162,7 +72908,7 @@
   "description": "Soldier (tier 4) - Combat Ring (Shayzien)|Combat Ring in the Shayzien Encampment (OSRS Wiki)"
  },
  {
-  "id": 6912,
+  "id": 6913,
   "position": {
    "x": 1547,
    "y": 3623,
@@ -78309,7 +77055,7 @@
   "description": "Tower guard - Watchtower (building)|Watchtower (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2938,
    "y": 2995,
@@ -78320,7 +77066,7 @@
   "description": "Tribesman - East of Shilo Village (location)|Shilo Village (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2940,
    "y": 2991,
@@ -78331,7 +77077,7 @@
   "description": "Tribesman - East of Shilo Village (location)|Shilo Village (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2918,
    "y": 2987,
@@ -78342,7 +77088,7 @@
   "description": "Tribesman - East of Shilo Village (location)|Shilo Village (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2866,
    "y": 3061,
@@ -78353,7 +77099,7 @@
   "description": "Tribesman - North of the Nature Altar (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2868,
    "y": 3054,
@@ -78364,7 +77110,7 @@
   "description": "Tribesman - North of the Nature Altar (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2777,
    "y": 3068,
@@ -78375,7 +77121,7 @@
   "description": "Tribesman - Tai Bwo Wannai (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2801,
    "y": 3067,
@@ -78386,7 +77132,7 @@
   "description": "Tribesman - Tai Bwo Wannai (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2724,
    "y": 3161,
@@ -78397,7 +77143,7 @@
   "description": "Tribesman - West of Brimhaven Dungeon Entrance (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2725,
    "y": 3163,
@@ -78408,7 +77154,7 @@
   "description": "Tribesman - West of Brimhaven Dungeon Entrance (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2728,
    "y": 3158,
@@ -78419,7 +77165,7 @@
   "description": "Tribesman - West of Brimhaven Dungeon Entrance (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2729,
    "y": 3158,
@@ -78430,7 +77176,7 @@
   "description": "Tribesman - West of Brimhaven Dungeon Entrance (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2731,
    "y": 3161,
@@ -78441,7 +77187,7 @@
   "description": "Tribesman - West of Brimhaven Dungeon Entrance (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2842,
    "y": 3017,
@@ -78452,7 +77198,7 @@
   "description": "Tribesman - North of Shilo Village (location)|Shilo Village (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2771,
    "y": 3014,
@@ -78463,7 +77209,7 @@
   "description": "Tribesman - North-west of {{Fairycode|CKR}} (north-west of Shilo Village (location)|Shilo Village) (OSRS Wiki)"
  },
  {
-  "id": 6406,
+  "id": 6407,
   "position": {
    "x": 2773,
    "y": 3017,
@@ -83752,61 +82498,6 @@
   "facing": "SOUTH",
   "radius": 3,
   "description": "Zoja - Canifis, near Rufus's Meat Emporium (OSRS Wiki)"
- },
- {
-  "id": 26,
-  "position": {
-   "x": 2497,
-   "y": 3292,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Zombie - West Ardougne cemetery (OSRS Wiki)"
- },
- {
-  "id": 26,
-  "position": {
-   "x": 2499,
-   "y": 3286,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Zombie - West Ardougne cemetery (OSRS Wiki)"
- },
- {
-  "id": 26,
-  "position": {
-   "x": 2500,
-   "y": 3283,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Zombie - West Ardougne cemetery (OSRS Wiki)"
- },
- {
-  "id": 26,
-  "position": {
-   "x": 2506,
-   "y": 3284,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Zombie - West Ardougne cemetery (OSRS Wiki)"
- },
- {
-  "id": 26,
-  "position": {
-   "x": 2511,
-   "y": 3287,
-   "z": 0
-  },
-  "facing": "SOUTH",
-  "radius": 3,
-  "description": "Zombie - West Ardougne cemetery (OSRS Wiki)"
  },
  {
   "id": 3969,

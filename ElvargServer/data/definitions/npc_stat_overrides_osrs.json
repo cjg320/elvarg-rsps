@@ -1,0 +1,1187 @@
+{
+ "2": {
+  "maxHit": 8,
+  "attackSpeed": 4
+ },
+ "8": {
+  "attackSpeed": 4
+ },
+ "70": {
+  "hitpoints": 29,
+  "maxHit": 3
+ },
+ "74": {
+  "hitpoints": 24,
+  "maxHit": 3
+ },
+ "77": {
+  "hitpoints": 17,
+  "maxHit": 4
+ },
+ "82": {
+  "hitpoints": 59,
+  "maxHit": 5
+ },
+ "84": {
+  "hitpoints": 17,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "85": {
+  "hitpoints": 25,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "104": {
+  "maxHit": 11,
+  "attackSpeed": 4
+ },
+ "106": {
+  "attackSpeed": 4
+ },
+ "107": {
+  "hitpoints": 34,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "108": {
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "109": {
+  "attackSpeed": 4
+ },
+ "110": {
+  "hitpoints": 34,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "114": {
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "136": {
+  "attackSpeed": 6
+ },
+ "232": {
+  "hitpoints": 69,
+  "maxHit": 6,
+  "attackSpeed": 4
+ },
+ "240": {
+  "maxHit": 16,
+  "attackSpeed": 4
+ },
+ "260": {
+  "attackSpeed": 4
+ },
+ "265": {
+  "maxHit": 10,
+  "attackSpeed": 4
+ },
+ "272": {
+  "hitpoints": 165,
+  "maxHit": 17,
+  "attackSpeed": 4
+ },
+ "291": {
+  "attackSpeed": 4
+ },
+ "299": {
+  "attackSpeed": 6
+ },
+ "301": {
+  "attackSpeed": 4
+ },
+ "302": {
+  "hitpoints": 37,
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "303": {
+  "attackSpeed": 4
+ },
+ "410": {
+  "hitpoints": 97,
+  "attackSpeed": 4
+ },
+ "412": {
+  "attackSpeed": 4
+ },
+ "414": {
+  "hitpoints": 22,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "415": {
+  "attackSpeed": 4
+ },
+ "417": {
+  "attackSpeed": 4
+ },
+ "421": {
+  "attackSpeed": 4
+ },
+ "423": {
+  "hitpoints": 105,
+  "maxHit": 8,
+  "attackSpeed": 4
+ },
+ "433": {
+  "attackSpeed": 4
+ },
+ "437": {
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "443": {
+  "attackSpeed": 4
+ },
+ "448": {
+  "hitpoints": 16,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "458": {
+  "attackSpeed": 4
+ },
+ "459": {
+  "attackSpeed": 4
+ },
+ "462": {
+  "attackSpeed": 4
+ },
+ "464": {
+  "attackSpeed": 4
+ },
+ "465": {
+  "hitpoints": 200,
+  "attackSpeed": 6
+ },
+ "473": {
+  "hitpoints": 65,
+  "maxHit": 7,
+  "attackSpeed": 4
+ },
+ "474": {
+  "maxHit": 8,
+  "attackSpeed": 4
+ },
+ "478": {
+  "attackSpeed": 4
+ },
+ "561": {
+  "attackSpeed": 4
+ },
+ "643": {
+  "hitpoints": 140,
+  "maxHit": 38,
+  "attackSpeed": 4
+ },
+ "645": {
+  "maxHit": 10,
+  "attackSpeed": 4
+ },
+ "647": {
+  "attackSpeed": 4
+ },
+ "787": {
+  "attackSpeed": 6
+ },
+ "795": {
+  "maxHit": 22
+ },
+ "796": {
+  "maxHit": 22
+ },
+ "820": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "926": {
+  "attackSpeed": 6
+ },
+ "927": {
+  "attackSpeed": 6
+ },
+ "928": {
+  "attackSpeed": 6
+ },
+ "931": {
+  "maxHit": 6,
+  "attackSpeed": 7
+ },
+ "936": {
+  "maxHit": 11,
+  "attackSpeed": 6
+ },
+ "946": {
+  "hitpoints": 45,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "1114": {
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "1153": {
+  "attackSpeed": 4
+ },
+ "1208": {
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "1224": {
+  "hitpoints": 116,
+  "maxHit": 13,
+  "attackSpeed": 4
+ },
+ "1225": {
+  "maxHit": 8,
+  "attackSpeed": 6
+ },
+ "1226": {
+  "hitpoints": 40,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "1261": {
+  "attackSpeed": 4
+ },
+ "1267": {
+  "attackSpeed": 4
+ },
+ "1280": {
+  "maxHit": 6
+ },
+ "1282": {
+  "attackSpeed": 4
+ },
+ "1284": {
+  "attackSpeed": 4
+ },
+ "1286": {
+  "hitpoints": 110,
+  "maxHit": 11
+ },
+ "1293": {
+  "attackSpeed": 4
+ },
+ "1338": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "1379": {
+  "hitpoints": 25,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "1409": {
+  "attackSpeed": 4
+ },
+ "1429": {
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "1447": {
+  "maxHit": 3,
+  "attackSpeed": 5
+ },
+ "1448": {
+  "attackSpeed": 4
+ },
+ "1461": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "1556": {
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "1557": {
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "1558": {
+  "attackSpeed": 4
+ },
+ "1559": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "1610": {
+  "hitpoints": 120,
+  "attackSpeed": 4
+ },
+ "1792": {
+  "attackSpeed": 4
+ },
+ "1794": {
+  "attackSpeed": 4
+ },
+ "1798": {
+  "hitpoints": 52,
+  "maxHit": 6
+ },
+ "1800": {
+  "hitpoints": 52,
+  "maxHit": 6
+ },
+ "1845": {
+  "attackSpeed": 4
+ },
+ "1852": {
+  "hitpoints": 1,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "1871": {
+  "attackSpeed": 4
+ },
+ "1874": {
+  "attackSpeed": 4
+ },
+ "1875": {
+  "attackSpeed": 4
+ },
+ "1876": {
+  "maxHit": 6,
+  "attackSpeed": 4
+ },
+ "1877": {
+  "attackSpeed": 4
+ },
+ "2001": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "2005": {
+  "hitpoints": 79,
+  "attackSpeed": 4
+ },
+ "2025": {
+  "hitpoints": 87,
+  "maxHit": 9,
+  "attackSpeed": 4
+ },
+ "2054": {
+  "attackSpeed": 4
+ },
+ "2056": {
+  "hitpoints": 15,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "2057": {
+  "hitpoints": 15,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "2062": {
+  "attackSpeed": 4
+ },
+ "2068": {
+  "hitpoints": 55,
+  "maxHit": 5
+ },
+ "2075": {
+  "hitpoints": 111,
+  "maxHit": 11
+ },
+ "2090": {
+  "attackSpeed": 6
+ },
+ "2094": {
+  "attackSpeed": 6
+ },
+ "2143": {
+  "hitpoints": 23,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "2144": {
+  "hitpoints": 18,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "2145": {
+  "attackSpeed": 4
+ },
+ "2210": {
+  "hitpoints": 100,
+  "maxHit": 11,
+  "attackSpeed": 4
+ },
+ "2211": {
+  "hitpoints": 120,
+  "maxHit": 15,
+  "attackSpeed": 4
+ },
+ "2212": {
+  "maxHit": 19,
+  "attackSpeed": 4
+ },
+ "2244": {
+  "maxHit": 19,
+  "attackSpeed": 4
+ },
+ "2261": {
+  "attackSpeed": 4
+ },
+ "2463": {
+  "maxHit": 6,
+  "attackSpeed": 4
+ },
+ "2492": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "2516": {
+  "attackSpeed": 4
+ },
+ "2579": {
+  "attackSpeed": 4
+ },
+ "2592": {
+  "attackSpeed": 6
+ },
+ "2613": {
+  "attackSpeed": 4
+ },
+ "2614": {
+  "attackSpeed": 4
+ },
+ "2615": {
+  "attackSpeed": 4
+ },
+ "2616": {
+  "attackSpeed": 4
+ },
+ "2617": {
+  "attackSpeed": 4
+ },
+ "2618": {
+  "attackSpeed": 4
+ },
+ "2619": {
+  "attackSpeed": 4
+ },
+ "2620": {
+  "attackSpeed": 4
+ },
+ "2621": {
+  "attackSpeed": 4
+ },
+ "2622": {
+  "attackSpeed": 4
+ },
+ "2623": {
+  "attackSpeed": 4
+ },
+ "2624": {
+  "attackSpeed": 4
+ },
+ "2625": {
+  "attackSpeed": 4
+ },
+ "2626": {
+  "attackSpeed": 4
+ },
+ "2627": {
+  "attackSpeed": 4
+ },
+ "2628": {
+  "attackSpeed": 4
+ },
+ "2629": {
+  "attackSpeed": 4
+ },
+ "2630": {
+  "attackSpeed": 4
+ },
+ "2631": {
+  "attackSpeed": 4
+ },
+ "2632": {
+  "attackSpeed": 4
+ },
+ "2634": {
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "2645": {
+  "hitpoints": 13,
+  "maxHit": 2
+ },
+ "2646": {
+  "hitpoints": 10,
+  "maxHit": 2,
+  "attackSpeed": 6
+ },
+ "2647": {
+  "hitpoints": 12,
+  "maxHit": 2,
+  "attackSpeed": 6
+ },
+ "2648": {
+  "hitpoints": 22,
+  "maxHit": 2,
+  "attackSpeed": 6
+ },
+ "2649": {
+  "hitpoints": 13,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "2694": {
+  "hitpoints": 7,
+  "attackSpeed": 4
+ },
+ "2807": {
+  "attackSpeed": 4
+ },
+ "2827": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "2834": {
+  "attackSpeed": 4
+ },
+ "2837": {
+  "attackSpeed": 4
+ },
+ "2838": {
+  "attackSpeed": 4
+ },
+ "2841": {
+  "attackSpeed": 4
+ },
+ "2844": {
+  "hitpoints": 44
+ },
+ "2845": {
+  "attackSpeed": 4
+ },
+ "2849": {
+  "attackSpeed": 4
+ },
+ "2856": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "2862": {
+  "hitpoints": 10,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "2869": {
+  "attackSpeed": 4
+ },
+ "2876": {
+  "maxHit": 1
+ },
+ "2878": {
+  "attackSpeed": 4
+ },
+ "2881": {
+  "hitpoints": 23,
+  "attackSpeed": 5
+ },
+ "2884": {
+  "hitpoints": 17,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "2885": {
+  "hitpoints": 20,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "2886": {
+  "hitpoints": 10,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "2889": {
+  "attackSpeed": 4
+ },
+ "2891": {
+  "hitpoints": 40,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "2893": {
+  "hitpoints": 27,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "2911": {
+  "attackSpeed": 4
+ },
+ "2992": {
+  "attackSpeed": 4
+ },
+ "2993": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "2999": {
+  "attackSpeed": 4
+ },
+ "3010": {
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "3016": {
+  "attackSpeed": 4
+ },
+ "3018": {
+  "hitpoints": 32,
+  "maxHit": 3
+ },
+ "3019": {
+  "hitpoints": 2,
+  "maxHit": 0
+ },
+ "3020": {
+  "hitpoints": 50,
+  "maxHit": 6,
+  "attackSpeed": 4
+ },
+ "3022": {
+  "attackSpeed": 4
+ },
+ "3025": {
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "3026": {
+  "attackSpeed": 4
+ },
+ "3027": {
+  "attackSpeed": 4
+ },
+ "3028": {
+  "hitpoints": 5,
+  "attackSpeed": 4
+ },
+ "3045": {
+  "hitpoints": 12
+ },
+ "3055": {
+  "maxHit": 2,
+  "attackSpeed": 4,
+  "hitpoints": 20
+ },
+ "3086": {
+  "hitpoints": 12,
+  "attackSpeed": 6
+ },
+ "3097": {
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "3098": {
+  "attackSpeed": 4
+ },
+ "3102": {
+  "hitpoints": 14,
+  "maxHit": 2
+ },
+ "3104": {
+  "hitpoints": 57
+ },
+ "3106": {
+  "maxHit": 9
+ },
+ "3108": {
+  "attackSpeed": 5
+ },
+ "3203": {
+  "hitpoints": 3,
+  "attackSpeed": 12
+ },
+ "3204": {
+  "attackSpeed": 4
+ },
+ "3233": {
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "3245": {
+  "hitpoints": 22,
+  "maxHit": 3,
+  "attackSpeed": 5
+ },
+ "3255": {
+  "attackSpeed": 4
+ },
+ "3263": {
+  "hitpoints": 7,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "3270": {
+  "hitpoints": 22
+ },
+ "3275": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "3279": {
+  "attackSpeed": 4
+ },
+ "3280": {
+  "attackSpeed": 4
+ },
+ "3281": {
+  "attackSpeed": 4
+ },
+ "3282": {
+  "attackSpeed": 4
+ },
+ "3284": {
+  "hitpoints": 7,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "3285": {
+  "hitpoints": 7,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "3420": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "3423": {
+  "hitpoints": 35,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "3424": {
+  "maxHit": 4
+ },
+ "3426": {
+  "attackSpeed": 4
+ },
+ "3443": {
+  "attackSpeed": 4
+ },
+ "3527": {
+  "hitpoints": 38,
+  "attackSpeed": 4
+ },
+ "3549": {
+  "maxHit": 7,
+  "attackSpeed": 4
+ },
+ "3661": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "3663": {
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "3675": {
+  "attackSpeed": 4
+ },
+ "3676": {
+  "attackSpeed": 4
+ },
+ "3677": {
+  "attackSpeed": 4
+ },
+ "3681": {
+  "attackSpeed": 4
+ },
+ "3683": {
+  "attackSpeed": 4
+ },
+ "3685": {
+  "attackSpeed": 4
+ },
+ "3687": {
+  "attackSpeed": 4
+ },
+ "3692": {
+  "attackSpeed": 4
+ },
+ "3694": {
+  "hitpoints": 85,
+  "maxHit": 5,
+  "attackSpeed": 4
+ },
+ "3709": {
+  "hitpoints": 90,
+  "maxHit": 10,
+  "attackSpeed": 4
+ },
+ "3710": {
+  "hitpoints": 90,
+  "maxHit": 11
+ },
+ "3711": {
+  "hitpoints": 105,
+  "maxHit": 12
+ },
+ "3851": {
+  "hitpoints": 85,
+  "attackSpeed": 6
+ },
+ "3863": {
+  "attackSpeed": 4
+ },
+ "3865": {
+  "attackSpeed": 4
+ },
+ "3869": {
+  "attackSpeed": 4
+ },
+ "3901": {
+  "hitpoints": 30,
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "3902": {
+  "attackSpeed": 4
+ },
+ "3908": {
+  "maxHit": 2
+ },
+ "3910": {
+  "attackSpeed": 4
+ },
+ "3911": {
+  "hitpoints": 25,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "3938": {
+  "attackSpeed": 4
+ },
+ "3939": {
+  "attackSpeed": 4
+ },
+ "3940": {
+  "attackSpeed": 4
+ },
+ "3943": {
+  "maxHit": 6,
+  "attackSpeed": 4
+ },
+ "3944": {
+  "attackSpeed": 4
+ },
+ "3949": {
+  "attackSpeed": 3
+ },
+ "3969": {
+  "attackSpeed": 4
+ },
+ "4095": {
+  "hitpoints": 10,
+  "attackSpeed": 4
+ },
+ "4107": {
+  "hitpoints": 10,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "4108": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "4109": {
+  "attackSpeed": 4
+ },
+ "4110": {
+  "hitpoints": 10,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "4111": {
+  "hitpoints": 10,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "4123": {
+  "attackSpeed": 6
+ },
+ "4130": {
+  "hitpoints": 120,
+  "maxHit": 27,
+  "attackSpeed": 8
+ },
+ "4184": {
+  "attackSpeed": 4
+ },
+ "4185": {
+  "attackSpeed": 4
+ },
+ "4186": {
+  "attackSpeed": 4
+ },
+ "4188": {
+  "attackSpeed": 4
+ },
+ "4246": {
+  "hitpoints": 5,
+  "attackSpeed": 4
+ },
+ "4319": {
+  "attackSpeed": 4
+ },
+ "4331": {
+  "maxHit": 4
+ },
+ "4362": {
+  "attackSpeed": 4
+ },
+ "4367": {
+  "attackSpeed": 4
+ },
+ "4373": {
+  "maxHit": 10,
+  "attackSpeed": 4
+ },
+ "4381": {
+  "maxHit": 10
+ },
+ "4405": {
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "4406": {
+  "attackSpeed": 4
+ },
+ "4635": {
+  "attackSpeed": 4
+ },
+ "4643": {
+  "hitpoints": 32,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "4649": {
+  "attackSpeed": 4
+ },
+ "4652": {
+  "attackSpeed": 4
+ },
+ "4655": {
+  "maxHit": 7,
+  "attackSpeed": 4
+ },
+ "4656": {
+  "attackSpeed": 4
+ },
+ "4708": {
+  "attackSpeed": 4
+ },
+ "4758": {
+  "attackSpeed": 4
+ },
+ "4759": {
+  "attackSpeed": 4
+ },
+ "4772": {
+  "hitpoints": 22,
+  "maxHit": 3,
+  "attackSpeed": 6
+ },
+ "4919": {
+  "attackSpeed": 4
+ },
+ "4926": {
+  "attackSpeed": 4
+ },
+ "4927": {
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "4972": {
+  "attackSpeed": 4
+ },
+ "4973": {
+  "hitpoints": 3,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "5007": {
+  "hitpoints": 8,
+  "maxHit": 0,
+  "attackSpeed": 4
+ },
+ "5086": {
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "5211": {
+  "maxHit": 3,
+  "attackSpeed": 5
+ },
+ "5241": {
+  "hitpoints": 5,
+  "attackSpeed": 4
+ },
+ "5242": {
+  "hitpoints": 15,
+  "maxHit": 15
+ },
+ "5263": {
+  "attackSpeed": 4
+ },
+ "5272": {
+  "attackSpeed": 4
+ },
+ "5275": {
+  "attackSpeed": 4
+ },
+ "5342": {
+  "maxHit": 7,
+  "attackSpeed": 4
+ },
+ "5372": {
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "5816": {
+  "attackSpeed": 4
+ },
+ "5842": {
+  "attackSpeed": 4
+ },
+ "5935": {
+  "attackSpeed": 4
+ },
+ "5938": {
+  "maxHit": 30,
+  "attackSpeed": 6
+ },
+ "5966": {
+  "hitpoints": 3,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "5968": {
+  "hitpoints": 3,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "5969": {
+  "hitpoints": 3,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "6075": {
+  "hitpoints": 100,
+  "maxHit": 10
+ },
+ "6077": {
+  "maxHit": 0
+ },
+ "6086": {
+  "hitpoints": 2,
+  "maxHit": 1,
+  "attackSpeed": 4
+ },
+ "6407": {
+  "hitpoints": 39,
+  "maxHit": 4,
+  "attackSpeed": 4
+ },
+ "6593": {
+  "attackSpeed": 4
+ },
+ "6594": {
+  "attackSpeed": 4
+ },
+ "6603": {
+  "hitpoints": 17,
+  "maxHit": 2,
+  "attackSpeed": 4
+ },
+ "6605": {
+  "hitpoints": 27,
+  "maxHit": 3,
+  "attackSpeed": 4
+ },
+ "6606": {
+  "hitpoints": 165,
+  "maxHit": 18,
+  "attackSpeed": 4
+ },
+ "6607": {
+  "maxHit": 17,
+  "attackSpeed": 4
+ },
+ "6609": {
+  "hitpoints": 1000,
+  "maxHit": 55,
+  "attackSpeed": 4
+ },
+ "6610": {
+  "hitpoints": 850,
+  "maxHit": 21,
+  "attackSpeed": 4
+ },
+ "6611": {
+  "maxHit": 44
+ },
+ "6618": {
+  "maxHit": 14,
+  "attackSpeed": 3
+ },
+ "6619": {
+  "maxHit": 21,
+  "attackSpeed": 2
+ },
+ "6739": {
+  "hitpoints": 120,
+  "maxHit": 21,
+  "attackSpeed": 4
+ },
+ "6766": {
+  "attackSpeed": 4
+ },
+ "6905": {
+  "attackSpeed": 7
+ },
+ "6907": {
+  "attackSpeed": 4
+ },
+ "6913": {
+  "attackSpeed": 4
+ },
+ "6914": {
+  "maxHit": 7,
+  "attackSpeed": 4
+ },
+ "6916": {
+  "attackSpeed": 4
+ },
+ "7105": {
+  "attackSpeed": 5
+ },
+ "7251": {
+  "hitpoints": 130,
+  "maxHit": 10
+ },
+ "7257": {
+  "hitpoints": 60,
+  "attackSpeed": 4
+ },
+ "7273": {
+  "attackSpeed": 4
+ },
+ "7276": {
+  "attackSpeed": 4
+ },
+ "7622": {
+  "hitpoints": 170,
+  "maxHit": 10,
+  "attackSpeed": 4
+ }
+}

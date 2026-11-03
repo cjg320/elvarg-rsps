@@ -114,6 +114,19 @@ public class NpcDefinition {
         return respawn;
     }
 
+    /** Real-game stat override (NPC_SPAWN_SET=osrs; source: OSRS Wiki infobox). Values <= 0 / null are ignored. */
+    public void applyOsrsStats(Integer hitpoints, Integer maxHit, Integer attackSpeed) {
+        if (hitpoints != null && hitpoints > 0) {
+            this.hitpoints = hitpoints;
+        }
+        if (maxHit != null && maxHit >= 0) {
+            this.maxHit = maxHit;
+        }
+        if (attackSpeed != null && attackSpeed > 0) {
+            this.attackSpeed = attackSpeed;
+        }
+    }
+
     public int getMaxHit() {
         return maxHit;
     }
