@@ -279,6 +279,24 @@ public class ItemOnGroundManager {
 	 * @param y
 	 * @return
 	 */
+	public static Optional<ItemOnGround> getGroundItem(Optional<String> owner, int id, Location position,
+			com.elvarg.game.model.areas.impl.PrivateArea area) {
+		Iterator<ItemOnGround> iterator = World.getItems().iterator();
+		for (; iterator.hasNext();) {
+			ItemOnGround item = iterator.next();
+			if (item == null || item.isPendingRemoval() || item.getPrivateArea() != area) {
+				continue;
+			}
+			if (item.getState() == State.SEEN_BY_PLAYER && (!owner.isPresent() || !isOwner(owner.get(), item))) {
+				continue;
+			}
+			if (id == item.getItem().getId() && item.getLocation().equals(position)) {
+				return Optional.of(item);
+			}
+		}
+		return Optional.empty();
+	}
+
 	public static Optional<ItemOnGround> getGroundItem(Optional<String> owner, int id, Location position) {
 		Iterator<ItemOnGround> iterator = World.getItems().iterator();
 		for (; iterator.hasNext();) {
