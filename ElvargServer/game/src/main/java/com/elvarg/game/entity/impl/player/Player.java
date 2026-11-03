@@ -174,6 +174,9 @@ public class Player extends Mobile {
 	/** Number of deaths this session (incremented when the stock death sequence starts). */
 	public int harnessDeaths;
 
+	/** Fractional experience carried between hits (OSRS tracks xp to 1/10; this avoids per-hit truncation). */
+	public final double[] xpCarry = new double[Skill.values().length];
+
 	public boolean isHarnessAccount() {
 		return harnessAccount;
 	}

@@ -88,6 +88,13 @@ public class GameConstants {
 	/**
 	 * Multiplies the experience gained.
 	 */
+	/**
+	 * OSRS combat XP rules (env OSRS_XP_RULES=1): 4 xp per damage to the style's skill(s) (shared equally when more
+	 * than one), 1.33 xp per damage to Hitpoints; magic = spell base xp + 2 per damage (+ base xp on a splash, no
+	 * Hitpoints xp). Source: OSRS Wiki "Combat experience" / "Experience". Default off = Elvarg's stock formula.
+	 */
+	public static final boolean OSRS_XP_RULES = "1".equals(System.getenv("OSRS_XP_RULES"));
+
 	public static final double COMBAT_SKILLS_EXP_MULTIPLIER = xpRate(6);
 	public static final double REGULAR_SKILLS_EXP_MULTIPLIER = xpRate(18);
 

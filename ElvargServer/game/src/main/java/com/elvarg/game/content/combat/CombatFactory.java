@@ -36,6 +36,7 @@ import com.elvarg.game.model.Graphic;
 import com.elvarg.game.model.GraphicHeight;
 import com.elvarg.game.model.Item;
 import com.elvarg.game.model.Location;
+import com.elvarg.game.GameConstants;
 import com.elvarg.game.model.Skill;
 import com.elvarg.game.model.SkullType;
 import com.elvarg.game.model.areas.AreaManager;
@@ -935,7 +936,47 @@ public class CombatFactory {
 	 * @param hit
 	 *            The damage dealt.
 	 */
+	/** Adds fractional experience, carrying the remainder so repeated small hits are not truncated away. */
+	private static void addFractionalExp(Player player, Skill skill, double amount) {
+		double total = player.xpCarry[skill.ordinal()] + amount;
+		int whole = (int) total;
+		player.xpCarry[skill.ordinal()] = total - whole;
+		if (whole > 0) {
+			player.getSkillManager().addExperience(skill, whole);
+		}
+	}
+
+	/** OSRS rules: see GameConstants.OSRS_XP_RULES. */
+	private static void rewardExpOsrs(Player player, PendingHit hit) {
+		final int dmg = hit.getTotalDamage();
+		if (hit.getCombatType() == CombatType.MAGIC) {
+			if (player.getCombat().getPreviousCast() == null) {
+				return;
+			}
+			double base = player.getCombat().getPreviousCast().baseExperience();
+			if (hit.isAccurate() && dmg > 0) {
+				addFractionalExp(player, Skill.MAGIC, base + 2.0 * dmg);
+				addFractionalExp(player, Skill.HITPOINTS, 1.33 * dmg);
+			} else {
+				addFractionalExp(player, Skill.MAGIC, base);   // splash / zero damage: base xp only
+			}
+			return;
+		}
+		if (dmg <= 0) {
+			return;
+		}
+		addFractionalExp(player, Skill.HITPOINTS, 1.33 * dmg);
+		final int[] exp = hit.getSkills();
+		for (int i : exp) {
+			addFractionalExp(player, Skill.values()[i], 4.0 * dmg / exp.length);
+		}
+	}
+
 	public static void rewardExp(Player player, PendingHit hit) {
+		if (GameConstants.OSRS_XP_RULES) {
+			rewardExpOsrs(player, hit);
+			return;
+		}
 
 		// Add magic exp, even if total damage is 0.
 		// Since spells have a base exp reward
