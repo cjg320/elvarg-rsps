@@ -179,7 +179,7 @@ public class Food {
 		 * hand-making them (such as pineapple chunks/rings).
 		 */
 		SPINACH_ROLL(new Item(1969), 2), BANANA(new Item(1963), 2), BANANA_(new Item(18199), 2), CABBAGE(new Item(1965),
-				2), ORANGE(new Item(2108), 2), PINEAPPLE_CHUNKS(new Item(2116),
+				1), ORANGE(new Item(2108), 2), PINEAPPLE_CHUNKS(new Item(2116),
 						2), PINEAPPLE_RINGS(new Item(2118), 2), PEACH(new Item(6883), 8),
 
 		/*
