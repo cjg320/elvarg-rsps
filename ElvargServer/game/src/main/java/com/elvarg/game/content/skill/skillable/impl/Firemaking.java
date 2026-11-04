@@ -100,6 +100,15 @@ public class Firemaking extends DefaultSkillable {
      * @param itemUsedWith
      * @return
      */
+    /**
+     * Fires last "anywhere from roughly 1 to 2 minutes" regardless of log type or level (OSRS Wiki "Fire", citing Mod Ash,
+     * 18 Oct 2017). The exact distribution is not published; we use uniform 100-200 ticks as an APPROXIMATION (Elvarg had a fixed
+     * 60-70 ticks per log type). Revisit if a precise source is found.
+     */
+    static int fireLifetimeTicks() {
+        return java.util.concurrent.ThreadLocalRandom.current().nextInt(100, 201);
+    }
+
     public static boolean init(Player player, int itemUsed, int itemUsedWith) {
         if (itemUsed == ItemIdentifiers.TINDERBOX || itemUsedWith == ItemIdentifiers.TINDERBOX) {
             int logId = itemUsed == ItemIdentifiers.TINDERBOX ? itemUsedWith : itemUsed;
@@ -184,7 +193,7 @@ public class Firemaking extends DefaultSkillable {
                 ItemOnGroundManager.deregister(groundLog.get());
 
                 //Create fire..
-                TaskManager.submit(new TimedObjectSpawnTask(new GameObject(ObjectIdentifiers.FIRE_5, pos, 10, 0, player.getPrivateArea()), log.getRespawnTimer(), Optional.of(new Action() {
+                TaskManager.submit(new TimedObjectSpawnTask(new GameObject(ObjectIdentifiers.FIRE_5, pos, 10, 0, player.getPrivateArea()), fireLifetimeTicks(), Optional.of(new Action() {
                     @Override
                     public void execute() {
                         if (!ItemOnGroundManager.getGroundItem(Optional.of(player.getUsername()), ItemIdentifiers.ASHES, pos).isPresent()) {
