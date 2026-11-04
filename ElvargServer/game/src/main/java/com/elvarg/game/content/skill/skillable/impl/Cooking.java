@@ -44,16 +44,28 @@ public class Cooking extends ItemCreationSkillable {
     }
 
     /**
-     * Probability of cooking (not burning) food, from the OSRS formula (OSRS Wiki "Skilling success chart"; Fire or Range
-     * columns): P = min(1, ((low * (99 - L) + high * (L - 1)) / 98 + 1) / 256). Replaces Elvarg's linear burn model.
+     * Probability of cooking (not burning) food: the OSRS skilling success function (OSRS Wiki "Skilling success rate"):
+     * P = clamp((1 + floor(low * (99 - L) / 98 + high * (L - 1) / 98 + 0.5)) / 256, 0, 1), L capped at 99 (boosts above 99 are
+     * ignored). low/high are the per-food "Fire or Range" values from the wiki item pages.
      */
     public static double successChance(int cookingLevel, int low, int high) {
-        double p = ((low * (99.0 - cookingLevel) + high * (cookingLevel - 1.0)) / 98.0 + 1.0) / 256.0;
-        return Math.min(1.0, p);
+        int level = Math.min(99, Math.max(1, cookingLevel));
+        double p = (1.0 + Math.floor(low * (99.0 - level) / 98.0 + high * (level - 1.0) / 98.0 + 0.5)) / 256.0;
+        return Math.max(0.0, Math.min(1.0, p));
     }
 
     public static boolean success(Player player, Cookable cookable) {
         return Misc.getRandomDouble() < successChance(player.getSkillManager().getCurrentLevel(Skill.COOKING), cookable.getLow(), cookable.getHigh());
+    }
+
+    /**
+     * Automatic cooking completes one item every 4 game ticks in OSRS (OSRS Wiki "Pay-to-play Cooking training"). The shared
+     * ItemCreationSkillable returns 2 (cycle++ >= 2 -> a result every 3 ticks), which is faster than the real game, so cooking
+     * overrides it only here (other users of the superclass are not audited and are left alone).
+     */
+    @Override
+    public int cyclesRequired(Player player) {
+        return 3;
     }
 
     // Override finishedCycle because we don't always add the cooked item.
