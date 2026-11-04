@@ -35,6 +35,8 @@ public class RegionManager {
     public static final int PROJECTILE_SOUTH_WEST_BLOCKED = 0x8000;
     public static final int PROJECTILE_WEST_BLOCKED = 0x10000;
     public static final int PROJECTILE_TILE_BLOCKED = 0x20000;
+    /** Map objects skipped because the cache cannot define them (object id -> count); diagnostic. */
+    public static final java.util.Map<Integer, Integer> SKIPPED_MAP_OBJECTS = new java.util.concurrent.ConcurrentHashMap<>();
     public static final int UNKNOWN = 0x80000;
     public static final int BLOCKED_TILE = 0x200000;
     public static final int UNLOADED_TILE = 0x1000000;
@@ -958,7 +960,14 @@ public class RegionManager {
                         // Add object..
 
                         if (height >= 0 && height <= 3) {
-                            RegionManager.addObject(objectId, absX + localX, absY + localY, height, type, direction); // Add
+                            try {
+                                RegionManager.addObject(objectId, absX + localX, absY + localY, height, type, direction); // Add
+                            } catch (RuntimeException ex) {
+                                // One object the cache cannot define (id past the definition table, or an unreadable
+                                // definition) must not abort the rest of the region: skipping the remaining objects
+                                // silently dropped their collision (walls). Skip just this object and count it.
+                                SKIPPED_MAP_OBJECTS.merge(objectId, 1, Integer::sum);
+                            }
 
                         }
                     }

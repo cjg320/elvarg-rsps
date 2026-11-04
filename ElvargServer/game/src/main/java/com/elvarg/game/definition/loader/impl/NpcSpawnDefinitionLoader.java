@@ -104,6 +104,7 @@ public class NpcSpawnDefinitionLoader extends DefinitionLoader {
         }
         System.out.println("[Spawns] OSRS spawn set: added " + added + ", duplicate " + dup + ", rejected tile " + blocked + " (no region " + blockedNoRegion + "; bits: blockedTile " + rejBlockedTile + ", unloaded " + rejUnloaded + ", unknown " + rejUnknown + ", object " + rejObject + "), stats overridden " + statsApplied
                 + ", above combat cap " + tooStrong + ", no definition " + noDef);
+        System.out.println("[Spawns] map objects skipped (cache cannot define them): " + com.elvarg.game.collision.RegionManager.SKIPPED_MAP_OBJECTS);
     }
 
     @Override
