@@ -538,6 +538,16 @@ public final class HarnessServer {
 				}
 				return "{\"ok\":true,\"removed\":" + n + "}";
 			}
+			case "diag_cook_chance": {
+				// DIAGNOSTIC ONLY: the success probability the cooking code uses for a raw item id at a cooking level.
+				Integer raw = intField(line, "raw"), lvl = intField(line, "level");
+				java.util.Optional<com.elvarg.game.content.skill.skillable.impl.Cooking.Cookable> ck = raw == null ? java.util.Optional.empty()
+						: com.elvarg.game.content.skill.skillable.impl.Cooking.Cookable.getForItem(raw);
+				if (!ck.isPresent() || lvl == null) {
+					return "{\"ok\":false,\"error\":\"bad diag_cook_chance\"}";
+				}
+				return "{\"ok\":true,\"p\":" + com.elvarg.game.content.skill.skillable.impl.Cooking.successChance(lvl, ck.get().getLow(), ck.get().getHigh()) + "}";
+			}
 			case "diag_ground": {
 				// DIAGNOSTIC ONLY: ground items in a box on one plane (id, amount, tile, state, pending-removal).
 				Integer gx0 = intField(line, "x0"), gx1 = intField(line, "x1"), gy0 = intField(line, "y0"), gy1 = intField(line, "y1"), gz = intField(line, "z");
