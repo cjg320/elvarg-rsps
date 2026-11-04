@@ -109,6 +109,7 @@ public class Cooking extends ItemCreationSkillable {
         // (raw, cooked, burnt, level, xp, stopBurn, low, high, name). low/high/level/xp from the OSRS Wiki item pages (Fire or Range).
         SHRIMP(317, 315, 7954, 1, 30, 33, 128, 512, "shrimp"),
         CHICKEN(2138, 2140, 2144, 1, 30, 34, 128, 512, "chicken"),
+        BEEF(2132, 2142, 2146, 1, 30, 34, 128, 512, "meat"),
         ANCHOVIES(321, 319, 323, 1, 30, 34, 128, 512, "anchovies"),
         TROUT(335, 333, 343, 15, 70, 50, 88, 432, "trout"),
         COD(341, 339, 343, 18, 75, 54, 83, 422, "cod"),

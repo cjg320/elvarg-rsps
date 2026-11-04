@@ -36,7 +36,7 @@ public class ItemActionPacketListener implements PacketExecutor {
 		int itemId = packet.readShort();
 		int slot = packet.readShort();
 
-		if (slot < 0 || slot > player.getInventory().capacity())
+		if (slot < 0 || slot >= player.getInventory().capacity())
 			return;
 		if (player.getInventory().getItems()[slot].getId() != itemId)
 			return;
