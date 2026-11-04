@@ -90,8 +90,38 @@ public class Woodcutting extends DefaultSkillable {
         PetHandler.onSkill(player, Skill.WOODCUTTING);
     }
 
+    /**
+     * Normal trees follow the OSRS model (OSRS Wiki "Tree" / "Woodcutting"): one roll every 4 game ticks, success chance from the
+     * skilling success function with the axe's low/high values (cut chance chart), the tree is always felled after one log and
+     * respawns after 36-60 seconds (60-100 ticks) at random. Other trees keep Elvarg's legacy model (not audited).
+     */
+    private static final java.util.Map<Integer, int[]> NORMAL_TREE_LOW_HIGH = new java.util.HashMap<>();
+    static {
+        NORMAL_TREE_LOW_HIGH.put(1351, new int[]{64, 200});    // bronze
+        NORMAL_TREE_LOW_HIGH.put(1349, new int[]{96, 300});    // iron
+        NORMAL_TREE_LOW_HIGH.put(1353, new int[]{128, 400});   // steel
+        NORMAL_TREE_LOW_HIGH.put(1361, new int[]{144, 450});   // black
+        NORMAL_TREE_LOW_HIGH.put(1355, new int[]{160, 500});   // mithril
+        NORMAL_TREE_LOW_HIGH.put(1357, new int[]{192, 600});   // adamant
+        NORMAL_TREE_LOW_HIGH.put(1359, new int[]{224, 700});   // rune
+        NORMAL_TREE_LOW_HIGH.put(6739, new int[]{240, 750});   // dragon
+    }
+
+    public static double normalTreeChance(int woodcuttingLevel, int axeId) {
+        int[] lh = NORMAL_TREE_LOW_HIGH.get(axeId);
+        if (lh == null) {
+            lh = NORMAL_TREE_LOW_HIGH.get(1351);
+        }
+        int level = Math.min(99, Math.max(1, woodcuttingLevel));
+        double p = (1.0 + Math.floor(lh[0] * (99.0 - level) / 98.0 + lh[1] * (level - 1.0) / 98.0 + 0.5)) / 256.0;
+        return Math.max(0.0, Math.min(1.0, p));
+    }
+
     @Override
     public void finishedCycle(Player player) {
+        if (tree == Tree.NORMAL && Misc.getRandomDouble() >= normalTreeChance(player.getSkillManager().getCurrentLevel(Skill.WOODCUTTING), axe.get().getId())) {
+            return;   // failed roll: keep chopping, try again in 4 ticks
+        }
         //Add logs..
         player.getInventory().add(tree.getLogId(), 1);
         player.getPacketSender().sendMessage("You get some logs.");
@@ -108,12 +138,16 @@ public class Woodcutting extends DefaultSkillable {
             cancel(player);
 
             //Despawn object and respawn it after a short period of time...
-            TaskManager.submit(new TimedObjectReplacementTask(treeObject, new GameObject(1343, treeObject.getLocation(), 10, 0, player.getPrivateArea()), tree.getRespawnTimer()));
+            TaskManager.submit(new TimedObjectReplacementTask(treeObject, new GameObject(1343, treeObject.getLocation(), 10, 0, player.getPrivateArea()),
+                    tree == Tree.NORMAL ? java.util.concurrent.ThreadLocalRandom.current().nextInt(60, 101) : tree.getRespawnTimer()));
         }
     }
 
     @Override
     public int cyclesRequired(Player player) {
+        if (tree == Tree.NORMAL) {
+            return 3;   // a roll every 4 ticks (cycle++ >= 3)
+        }
         float cycles = tree.getCycles() + Misc.getRandom(4);
         cycles -= player.getSkillManager().getMaxLevel(Skill.WOODCUTTING) * 0.1;
         cycles -= cycles * axe.get().getSpeed();
@@ -193,7 +227,7 @@ public class Woodcutting extends DefaultSkillable {
         BRONZE_AXE(1351, 1, 0.03, new Animation(879)),
         IRON_AXE(1349, 1, 0.05, new Animation(877)),
         STEEL_AXE(1353, 6, 0.09, new Animation(875)),
-        BLACK_AXE(1361, 6, 0.11, new Animation(873)),
+        BLACK_AXE(1361, 11, 0.11, new Animation(873)),
         MITHRIL_AXE(1355, 21, 0.13, new Animation(871)),
         ADAMANT_AXE(1357, 31, 0.16, new Animation(869)),
         RUNE_AXE(1359, 41, 0.19, new Animation(867)),
