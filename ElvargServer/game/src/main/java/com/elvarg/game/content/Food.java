@@ -153,6 +153,8 @@ public class Food {
 		/*
 		 * Fish food types players can get by fishing or purchasing from other entities.
 		 */
+		// Added to match the real game (OSRS Wiki Bread: 5 HP, Cooked chicken: 3 HP); both were missing.
+		BREAD(new Item(2309), 5), COOKED_CHICKEN(new Item(2140), 3),
 		KEBAB(new Item(1971), 4), CHEESE(new Item(1985), 4), CAKE(new Item(1891), 5), SECOND_CAKE_SLICE(new Item(1893),
 				5), THIRD_CAKE_SLICE(new Item(1895), 5), BANDAGES(new Item(14640), 12), JANGERBERRIES(new Item(247),
 						2), WORM_CRUNCHIES(new Item(2205), 7), EDIBLE_SEAWEED(new Item(403), 4), ANCHOVIES(

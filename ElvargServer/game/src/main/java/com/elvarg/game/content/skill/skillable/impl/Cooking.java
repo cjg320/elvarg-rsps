@@ -44,28 +44,16 @@ public class Cooking extends ItemCreationSkillable {
     }
 
     /**
-     * Get's the rate for burning or successfully cooking food.
-     *
-     * @param player
-     *            Player cooking.
-     * @param food
-     *            Consumables's enum.
-     * @return Successfully cook food.
+     * Probability of cooking (not burning) food, from the OSRS formula (OSRS Wiki "Skilling success chart"; Fire or Range
+     * columns): P = min(1, ((low * (99 - L) + high * (L - 1)) / 98 + 1) / 256). Replaces Elvarg's linear burn model.
      */
-    public static boolean success(Player player, int burnBonus, int levelReq, int stopBurn) {
-        if (player.getSkillManager().getCurrentLevel(Skill.COOKING) >= stopBurn) {
-            return true;
-        }
-        double burn_chance = (45.0 - burnBonus);
-        double cook_level = player.getSkillManager().getCurrentLevel(Skill.COOKING);
-        double lev_needed = (double) levelReq;
-        double burn_stop = (double) stopBurn;
-        double multi_a = (burn_stop - lev_needed);
-        double burn_dec = (burn_chance / multi_a);
-        double multi_b = (cook_level - lev_needed);
-        burn_chance -= (multi_b * burn_dec);
-        double randNum = Misc.getRandomDouble() * 100.0;
-        return burn_chance <= randNum;
+    public static double successChance(int cookingLevel, int low, int high) {
+        double p = ((low * (99.0 - cookingLevel) + high * (cookingLevel - 1.0)) / 98.0 + 1.0) / 256.0;
+        return Math.min(1.0, p);
+    }
+
+    public static boolean success(Player player, Cookable cookable) {
+        return Misc.getRandomDouble() < successChance(player.getSkillManager().getCurrentLevel(Skill.COOKING), cookable.getLow(), cookable.getHigh());
     }
 
     // Override finishedCycle because we don't always add the cooked item.
@@ -79,7 +67,7 @@ public class Cooking extends ItemCreationSkillable {
         player.getInventory().delete(cookable.getRawItem(), 1);
 
         // Add burnt or cooked item..
-        if (success(player, 3, cookable.getLevelReq(), cookable.getStopBurn())) {
+        if (success(player, cookable)) {
             player.getInventory().add(cookable.getCookedItem(), 1);
             player.getPacketSender()
                     .sendMessage("You cook the " + ItemDefinition.forId(cookable.getRawItem()).getName() + ".");
@@ -106,19 +94,21 @@ public class Cooking extends ItemCreationSkillable {
      * Data for the cooking skill.
      */
     public static enum Cookable {
-        SHRIMP(317, 315, 7954, 1, 30, 33, "shrimp"),
-        ANCHOVIES(321, 319, 323, 1, 30, 34, "anchovies"),
-        TROUT(335, 333, 343, 15, 70, 50, "trout"),
-        COD(341, 339, 343, 18, 75, 54, "cod"),
-        SALMON(331, 329, 343, 25, 90, 58, "salmon"),
-        TUNA(359, 361, 367, 30, 100, 58, "tuna"),
-        LOBSTER(377, 379, 381, 40, 120, 74, "lobster"),
-        BASS(363, 365, 367, 40, 130, 75, "bass"),
-        SWORDFISH(371, 373, 375, 45, 140, 86, "swordfish"),
-        MONKFISH(7944, 7946, 7948, 62, 150, 91, "monkfish"),
-        SHARK(383, 385, 387, 80, 210, 94, "shark"),
-        SEA_TURTLE(395, 397, 399, 82, 212, 105, "sea turtle"),
-        MANTA_RAY(389, 391, 393, 91, 217, 99, "manta ray"),;
+        // (raw, cooked, burnt, level, xp, stopBurn, low, high, name). low/high/level/xp from the OSRS Wiki item pages (Fire or Range).
+        SHRIMP(317, 315, 7954, 1, 30, 33, 128, 512, "shrimp"),
+        CHICKEN(2138, 2140, 2144, 1, 30, 34, 128, 512, "chicken"),
+        ANCHOVIES(321, 319, 323, 1, 30, 34, 128, 512, "anchovies"),
+        TROUT(335, 333, 343, 15, 70, 50, 88, 432, "trout"),
+        COD(341, 339, 343, 18, 75, 54, 83, 422, "cod"),
+        SALMON(331, 329, 343, 25, 90, 58, 68, 392, "salmon"),
+        TUNA(359, 361, 367, 30, 100, 58, 58, 372, "tuna"),
+        LOBSTER(377, 379, 381, 40, 120, 74, 38, 332, "lobster"),
+        BASS(363, 365, 367, 43, 130, 75, 33, 312, "bass"),
+        SWORDFISH(371, 373, 375, 45, 140, 86, 18, 292, "swordfish"),
+        MONKFISH(7944, 7946, 7948, 62, 150, 91, 11, 275, "monkfish"),
+        SHARK(383, 385, 387, 80, 210, 94, 1, 202, "shark"),
+        SEA_TURTLE(395, 397, 399, 82, 212, 105, 1, 202, "sea turtle"),
+        MANTA_RAY(389, 391, 393, 91, 217, 99, 1, 202, "manta ray"),;
 
         private static final Map<Integer, Cookable> cookables = new HashMap<Integer, Cookable>();
 
@@ -129,16 +119,18 @@ public class Cooking extends ItemCreationSkillable {
             }
         }
 
-        int rawItem, cookedItem, burntItem, levelReq, xp, stopBurn;
+        int rawItem, cookedItem, burntItem, levelReq, xp, stopBurn, low, high;
         String name;
 
-        Cookable(int rawItem, int cookedItem, int burntItem, int levelReq, int xp, int stopBurn, String name) {
+        Cookable(int rawItem, int cookedItem, int burntItem, int levelReq, int xp, int stopBurn, int low, int high, String name) {
             this.rawItem = rawItem;
             this.cookedItem = cookedItem;
             this.burntItem = burntItem;
             this.levelReq = levelReq;
             this.xp = xp;
             this.stopBurn = stopBurn;
+            this.low = low;
+            this.high = high;
             this.name = name;
         }
 
@@ -164,6 +156,14 @@ public class Cooking extends ItemCreationSkillable {
 
         public int getXp() {
             return xp;
+        }
+
+        public int getLow() {
+            return low;
+        }
+
+        public int getHigh() {
+            return high;
         }
 
         public int getStopBurn() {
