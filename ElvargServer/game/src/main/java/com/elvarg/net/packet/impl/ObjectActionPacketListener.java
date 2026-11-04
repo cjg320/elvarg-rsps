@@ -50,6 +50,9 @@ public class ObjectActionPacketListener extends ObjectIdentifiers implements Pac
 	 *            The packet containing the object's information.
 	 */
     private static void firstClick(Player player, GameObject object) {
+        if (com.elvarg.game.entity.impl.object.FenceGates.toggle(player, object)) {
+            return;
+        }
         if(doorHandler(player, object)) {
 	        return;
 	    }
