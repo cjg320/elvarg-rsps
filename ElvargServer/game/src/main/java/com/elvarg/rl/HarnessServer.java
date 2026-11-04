@@ -538,6 +538,16 @@ public final class HarnessServer {
 				}
 				return "{\"ok\":true,\"removed\":" + n + "}";
 			}
+			case "diag_objdef": {
+				// DIAGNOSTIC ONLY: name, menu options, size and clipping of an object definition.
+				Integer oid = intField(line, "id");
+				com.elvarg.game.definition.ObjectDefinition od = oid == null ? null : com.elvarg.game.definition.ObjectDefinition.forId(oid);
+				if (od == null) {
+					return "{\"ok\":false,\"error\":\"bad diag_objdef\"}";
+				}
+				return "{\"ok\":true,\"id\":" + oid + ",\"name\":\"" + esc(String.valueOf(od.name)) + "\",\"options\":\""
+						+ esc(java.util.Arrays.toString(od.interactions)) + "\",\"sizeX\":" + od.objectSizeX + ",\"sizeY\":" + od.objectSizeY + "}";
+			}
 			case "diag_cook_chance": {
 				// DIAGNOSTIC ONLY: the success probability the cooking code uses for a raw item id at a cooking level.
 				Integer raw = intField(line, "raw"), lvl = intField(line, "level");
