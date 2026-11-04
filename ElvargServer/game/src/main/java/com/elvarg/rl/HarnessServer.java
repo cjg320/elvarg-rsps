@@ -558,6 +558,22 @@ public final class HarnessServer {
 				}
 				return "{\"ok\":true,\"p\":" + com.elvarg.game.content.skill.skillable.impl.Cooking.successChance(lvl, ck.get().getLow(), ck.get().getHigh()) + "}";
 			}
+			case "diag_cook_sample": {
+				// DIAGNOSTIC ONLY: runs the production cook/burn decision n times at a fixed level (no player state is changed).
+				Integer raw = intField(line, "raw"), lvl = intField(line, "level"), n = intField(line, "n");
+				java.util.Optional<com.elvarg.game.content.skill.skillable.impl.Cooking.Cookable> ck = raw == null ? java.util.Optional.empty()
+						: com.elvarg.game.content.skill.skillable.impl.Cooking.Cookable.getForItem(raw);
+				if (!ck.isPresent() || lvl == null || n == null || n < 1 || n > 1000000) {
+					return "{\"ok\":false,\"error\":\"bad diag_cook_sample\"}";
+				}
+				int ok = 0;
+				for (int i = 0; i < n; i++) {
+					if (com.elvarg.game.content.skill.skillable.impl.Cooking.roll(lvl, ck.get())) {
+						ok++;
+					}
+				}
+				return "{\"ok\":true,\"n\":" + n + ",\"successes\":" + ok + "}";
+			}
 			case "diag_ground": {
 				// DIAGNOSTIC ONLY: ground items in a box on one plane (id, amount, tile, state, pending-removal).
 				Integer gx0 = intField(line, "x0"), gx1 = intField(line, "x1"), gy0 = intField(line, "y0"), gy1 = intField(line, "y1"), gz = intField(line, "z");

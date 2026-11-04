@@ -55,7 +55,12 @@ public class Cooking extends ItemCreationSkillable {
     }
 
     public static boolean success(Player player, Cookable cookable) {
-        return Misc.getRandomDouble() < successChance(player.getSkillManager().getCurrentLevel(Skill.COOKING), cookable.getLow(), cookable.getHigh());
+        return roll(player.getSkillManager().getCurrentLevel(Skill.COOKING), cookable);
+    }
+
+    /** The single cook/burn decision used by the skill; split out so a diagnostic can sample the production path at a fixed level. */
+    public static boolean roll(int cookingLevel, Cookable cookable) {
+        return Misc.getRandomDouble() < successChance(cookingLevel, cookable.getLow(), cookable.getHigh());
     }
 
     /**
