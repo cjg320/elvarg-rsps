@@ -173,6 +173,8 @@ public class Player extends Mobile {
 
 	/** Number of deaths this session (incremented when the stock death sequence starts). */
 	public int harnessDeaths;
+	/** Harness accounts only: the last chat lines a human would have read (state feed 'messages'). */
+	public final java.util.ArrayDeque<String> harnessMessages = new java.util.ArrayDeque<>();
 
 	/** Fractional experience carried between hits (OSRS tracks xp to 1/10; this avoids per-hit truncation). */
 	public final double[] xpCarry = new double[Skill.values().length];

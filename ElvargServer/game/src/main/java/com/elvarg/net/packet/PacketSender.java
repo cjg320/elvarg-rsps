@@ -179,6 +179,13 @@ public class PacketSender {
 	 * @return The PacketSender instance.
 	 */
 	public PacketSender sendMessage(String message) {
+		if (player.isHarnessAccount()) {
+			// Harness accounts have no client: keep the chat lines a human would read (last 8) for the state feed.
+			player.harnessMessages.addLast(message);
+			while (player.harnessMessages.size() > 8) {
+				player.harnessMessages.removeFirst();
+			}
+		}
 		if (player instanceof PlayerBot) {
 			// Bots can't read their own messages, yet ;)
 			((PlayerBot) player).getChatInteraction().receivedGameMessage(message);

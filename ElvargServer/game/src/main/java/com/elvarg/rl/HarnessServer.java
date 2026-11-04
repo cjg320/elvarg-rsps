@@ -185,6 +185,25 @@ public final class HarnessServer {
 	}
 
 
+
+	/** Item ids offered by the creation (make-X) menu the player currently has open, as the client would show them; [] if none. */
+	private static String creationMenu(Player p) {
+		com.elvarg.game.model.menu.CreationMenu m = p.getCreationMenu();
+		return m == null ? "[]" : m.getItems().toString().replace(" ", "");
+	}
+
+
+	/** The last chat lines the player received (what the chat box shows). */
+	private static String messages(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (String m : p.harnessMessages.toArray(new String[0])) {
+			sb.append(first ? "" : ",").append("\"").append(esc(m)).append("\"");
+			first = false;
+		}
+		return sb.append("]").toString();
+	}
+
 	/**
 	 * Ground items a player can see: same plane, same instance, within 15 tiles, and either global or their own.
 	 * [item id, amount, x, y]. No respawn timers or other hidden state.
@@ -239,14 +258,28 @@ public final class HarnessServer {
 				}
 			}
 		}
+		// Dynamic objects (fires, spawned by skills/quests) live in World.getObjects(), not in the static map.
+		java.util.Set<com.elvarg.game.entity.impl.object.GameObject> dynamic = new java.util.HashSet<>();
+		for (com.elvarg.game.entity.impl.object.GameObject go : World.getObjects()) {
+			if (go.getLocation().getZ() == pz && go.getPrivateArea() == p.getPrivateArea() && go.getLocation().getDistance(p.getLocation()) <= 8) {
+				found.add(go);
+				dynamic.add(go);
+			}
+		}
+		java.util.Set<String> seen = new java.util.HashSet<>();
 		for (com.elvarg.game.entity.impl.object.GameObject go : found) {
 			com.elvarg.game.definition.ObjectDefinition d = com.elvarg.game.definition.ObjectDefinition.forId(go.getId());
-			if (d == null || d.interactions == null || d.interactions.length == 0 || d.interactions[0] == null
-					|| d.interactions[0].isEmpty()) {
+			boolean hasOption = d != null && d.interactions != null && d.interactions.length > 0 && d.interactions[0] != null
+					&& !d.interactions[0].isEmpty();
+			if (!seen.add(go.getId() + ":" + go.getLocation().getX() + ":" + go.getLocation().getY() + ":" + go.getType())) {
+				continue;
+			}
+			// Dynamic objects (e.g. a fire) are always listed: a player sees them and can use an item on them even with no menu option.
+			if (!hasOption && !dynamic.contains(go)) {
 				continue;
 			}
 			sb.append(first ? "" : ",").append("[").append(go.getId()).append(",").append(go.getLocation().getX()).append(",")
-					.append(go.getLocation().getY()).append(",\"").append(esc(d.interactions[0])).append("\"]");
+					.append(go.getLocation().getY()).append(",\"").append(esc(hasOption ? d.interactions[0] : "")).append("\"]");
 			first = false;
 		}
 		return sb.append("]").toString();
@@ -679,7 +712,7 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 
 	/**
