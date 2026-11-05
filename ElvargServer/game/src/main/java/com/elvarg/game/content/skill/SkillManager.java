@@ -358,18 +358,14 @@ public class SkillManager {
 		final int prayer = (int) (skills.maxLevel[Skill.PRAYER.ordinal()]);
 		final int ranged = skills.maxLevel[Skill.RANGED.ordinal()];
 		final int magic = skills.maxLevel[Skill.MAGIC.ordinal()];
-		int combatLevel = 3;
-		combatLevel = (int) ((defence + hp + Math.floor(prayer / 2)) * 0.2535) + 1;
+		// OSRS wiki "Combat level": base = 0.25 * (Defence + Hitpoints + floor(Prayer / 2)); the highest of
+		// melee = 0.325 * (Attack + Strength), ranged = 0.325 * (floor(Ranged / 2) + Ranged), magic likewise; level = floor(base + max).
+		// Elvarg used the old 0.2535 * (...) + 1 form and truncated twice (DECISIONS M2-combat-level).
+		final double base = 0.25 * (defence + hp + Math.floor(prayer / 2.0));
 		final double melee = (attack + strength) * 0.325;
-		final double ranger = Math.floor(ranged * 1.5) * 0.325;
-		final double mage = Math.floor(magic * 1.5) * 0.325;
-		if (melee >= ranger && melee >= mage) {
-			combatLevel += melee;
-		} else if (ranger >= melee && ranger >= mage) {
-			combatLevel += ranger;
-		} else if (mage >= melee && mage >= ranger) {
-			combatLevel += mage;
-		}
+		final double ranger = (Math.floor(ranged / 2.0) + ranged) * 0.325;
+		final double mage = (Math.floor(magic / 2.0) + magic) * 0.325;
+		int combatLevel = (int) Math.floor(base + Math.max(melee, Math.max(ranger, mage)));
 		if (combatLevel > 126) {
 			return 126;
 		}

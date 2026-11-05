@@ -679,6 +679,24 @@ public final class HarnessServer {
 				p.setHitpoints(hp);
 				return "{\"ok\":true,\"hp\":" + p.getHitpoints() + "}";
 			}
+			case "dev_setlevel": {
+				// DEV SANDBOX ONLY: sets a skill's max and current level (boundary tests such as the combat 25/26 portal check).
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer lv = intField(line, "level");
+				String sk = field(line, "skill");
+				com.elvarg.game.model.Skill skill = null;
+				if (sk != null) {
+					try { skill = com.elvarg.game.model.Skill.valueOf(sk.toUpperCase()); } catch (IllegalArgumentException e) { skill = null; }
+				}
+				if (p == null || lv == null || lv < 1 || lv > 99 || skill == null) {
+					return "{\"ok\":false,\"error\":\"bad dev_setlevel\"}";
+				}
+				p.getSkillManager().setMaxLevel(skill, lv, true).setCurrentLevel(skill, lv, true);
+				return "{\"ok\":true,\"combat\":" + p.getSkillManager().getCombatLevel() + "}";
+			}
 			case "dev_give": {
 				// DEV SANDBOX ONLY: puts items in the inventory (e.g. food) so recovery behaviour can be learned.
 				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
