@@ -268,6 +268,9 @@ public final class HarnessServer {
 		}
 		java.util.Set<String> seen = new java.util.HashSet<>();
 		for (com.elvarg.game.entity.impl.object.GameObject go : found) {
+			if (go.getId() < 0) {
+				continue; // removal marker, not a visible object (forId(-1) throws)
+			}
 			com.elvarg.game.definition.ObjectDefinition d = com.elvarg.game.definition.ObjectDefinition.forId(go.getId());
 			boolean hasOption = d != null && d.interactions != null && d.interactions.length > 0 && d.interactions[0] != null
 					&& !d.interactions[0].isEmpty();
