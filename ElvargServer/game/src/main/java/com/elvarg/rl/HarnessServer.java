@@ -693,6 +693,19 @@ public final class HarnessServer {
 				p.getInventory().refreshItems();
 				return "{\"ok\":true}";
 			}
+			case "dev_open_shop": {
+				// DEV SANDBOX ONLY (test fixture): opens a shop by id as an NPC click would (used for the legacy-shop regression test).
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				Integer sid = intField(line, "shop");
+				if (p == null || sid == null) {
+					return "{\"ok\":false,\"error\":\"bad dev_open_shop\"}";
+				}
+				com.elvarg.game.model.container.shop.ShopManager.open(p, sid);
+				return "{\"ok\":true}";
+			}
 			case "dev_strip": {
 				// DEV SANDBOX ONLY (test fixture): empties the inventory.
 				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
