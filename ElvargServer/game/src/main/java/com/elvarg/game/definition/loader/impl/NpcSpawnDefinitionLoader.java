@@ -40,7 +40,9 @@ public class NpcSpawnDefinitionLoader extends DefinitionLoader {
                 : Integer.parseInt(System.getenv("NPC_SPAWN_MAX_COMBAT"));
         // Real-game stats (hp, max hit, attack speed) from the OSRS Wiki, where Elvarg's definitions differ.
         int statsApplied = 0;
-        java.io.File ovf = new java.io.File(GameConstants.DEFINITIONS_DIRECTORY + "npc_stat_overrides_osrs.json");
+        // Second file: hand-sourced content stats (Stronghold of Security monsters; tools/build_content_data.py).
+        for (String ovName : new String[] { "npc_stat_overrides_osrs.json", "npc_stat_overrides_content.json" }) {
+        java.io.File ovf = new java.io.File(GameConstants.DEFINITIONS_DIRECTORY + ovName);
         if (ovf.exists()) {
             try (FileReader r = new FileReader(ovf)) {
                 com.google.gson.JsonObject o = new Gson().fromJson(r, com.google.gson.JsonObject.class);
@@ -53,16 +55,21 @@ public class NpcSpawnDefinitionLoader extends DefinitionLoader {
                     nd.applyOsrsStats(v.has("hitpoints") ? v.get("hitpoints").getAsInt() : null,
                             v.has("maxHit") ? v.get("maxHit").getAsInt() : null,
                             v.has("attackSpeed") ? v.get("attackSpeed").getAsInt() : null);
+                    if (v.has("aggressive")) {
+                        nd.applyOsrsAggressive(v.get("aggressive").getAsBoolean());
+                    }
                     statsApplied++;
                 }
             }
+        }
         }
         java.util.Set<String> have = new java.util.HashSet<>();
         for (NpcSpawnDefinition d : stock) {
             have.add(d.getId() + ":" + d.getPosition().getX() + ":" + d.getPosition().getY() + ":" + d.getPosition().getZ());
         }
         int added = 0, dup = 0, blocked = 0, tooStrong = 0, noDef = 0, blockedNoRegion = 0, rejBlockedTile = 0, rejUnloaded = 0, rejUnknown = 0, rejObject = 0;
-        try (FileReader r = new FileReader(GameConstants.DEFINITIONS_DIRECTORY + "npc_spawns_osrs.json")) {
+        for (String spawnFile : new String[] { "npc_spawns_osrs.json", "npc_spawns_content.json" })
+        try (FileReader r = new FileReader(GameConstants.DEFINITIONS_DIRECTORY + spawnFile)) {
             NpcSpawnDefinition[] defs = new Gson().fromJson(r, NpcSpawnDefinition[].class);
             for (NpcSpawnDefinition def : defs) {
                 String key = def.getId() + ":" + def.getPosition().getX() + ":" + def.getPosition().getY() + ":" + def.getPosition().getZ();

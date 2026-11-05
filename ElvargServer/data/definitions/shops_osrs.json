@@ -1,0 +1,392 @@
+[
+ {
+  "id": 20,
+  "name": "Lumbridge General Store",
+  "originalStock": [
+   {
+    "id": 1931,
+    "amount": 5
+   },
+   {
+    "id": 1935,
+    "amount": 2
+   },
+   {
+    "id": 1735,
+    "amount": 2
+   },
+   {
+    "id": 946,
+    "amount": 5
+   },
+   {
+    "id": 1925,
+    "amount": 3
+   },
+   {
+    "id": 1923,
+    "amount": 2
+   },
+   {
+    "id": 1887,
+    "amount": 2
+   },
+   {
+    "id": 590,
+    "amount": 2
+   },
+   {
+    "id": 1755,
+    "amount": 2
+   },
+   {
+    "id": 952,
+    "amount": 5
+   },
+   {
+    "id": 2347,
+    "amount": 5
+   },
+   {
+    "id": 550,
+    "amount": 5
+   },
+   {
+    "id": 9003,
+    "amount": 5
+   }
+  ],
+  "faithful": true,
+  "general": true,
+  "sellMultiplier": 1300,
+  "buyMultiplier": 400,
+  "delta": 30,
+  "restock": {
+   "1931": 10,
+   "1935": 100,
+   "1735": 100,
+   "946": 100,
+   "1925": 10,
+   "1923": 50,
+   "1887": 50,
+   "590": 100,
+   "1755": 100,
+   "952": 100,
+   "2347": 100,
+   "550": 100,
+   "9003": 100
+  }
+ },
+ {
+  "id": 21,
+  "name": "Varrock Swordshop",
+  "originalStock": [
+   {
+    "id": 1277,
+    "amount": 5
+   },
+   {
+    "id": 1279,
+    "amount": 4
+   },
+   {
+    "id": 1281,
+    "amount": 4
+   },
+   {
+    "id": 1283,
+    "amount": 3
+   },
+   {
+    "id": 1285,
+    "amount": 3
+   },
+   {
+    "id": 1287,
+    "amount": 2
+   },
+   {
+    "id": 1291,
+    "amount": 4
+   },
+   {
+    "id": 1293,
+    "amount": 3
+   },
+   {
+    "id": 1295,
+    "amount": 3
+   },
+   {
+    "id": 1297,
+    "amount": 2
+   },
+   {
+    "id": 1299,
+    "amount": 2
+   },
+   {
+    "id": 1301,
+    "amount": 1
+   },
+   {
+    "id": 1205,
+    "amount": 10
+   },
+   {
+    "id": 1203,
+    "amount": 6
+   },
+   {
+    "id": 1207,
+    "amount": 5
+   },
+   {
+    "id": 1217,
+    "amount": 4
+   },
+   {
+    "id": 1209,
+    "amount": 3
+   },
+   {
+    "id": 1211,
+    "amount": 2
+   }
+  ],
+  "faithful": true,
+  "general": false,
+  "sellMultiplier": 1000,
+  "buyMultiplier": 600,
+  "delta": 20,
+  "restock": {
+   "1277": 100,
+   "1279": 200,
+   "1281": 400,
+   "1283": 1000,
+   "1285": 3000,
+   "1287": 12000,
+   "1291": 100,
+   "1293": 200,
+   "1295": 400,
+   "1297": 1000,
+   "1299": 3000,
+   "1301": 12000,
+   "1205": 100,
+   "1203": 200,
+   "1207": 400,
+   "1217": 1000,
+   "1209": 3000,
+   "1211": 12000
+  }
+ },
+ {
+  "id": 22,
+  "name": "Horvik's Armour Shop",
+  "originalStock": [
+   {
+    "id": 1103,
+    "amount": 5
+   },
+   {
+    "id": 1101,
+    "amount": 3
+   },
+   {
+    "id": 1105,
+    "amount": 3
+   },
+   {
+    "id": 1109,
+    "amount": 1
+   },
+   {
+    "id": 1117,
+    "amount": 3
+   },
+   {
+    "id": 1115,
+    "amount": 1
+   },
+   {
+    "id": 1119,
+    "amount": 1
+   },
+   {
+    "id": 1125,
+    "amount": 1
+   },
+   {
+    "id": 1121,
+    "amount": 1
+   },
+   {
+    "id": 1067,
+    "amount": 1
+   },
+   {
+    "id": 1133,
+    "amount": 1
+   },
+   {
+    "id": 1097,
+    "amount": 1
+   }
+  ],
+  "faithful": true,
+  "general": false,
+  "sellMultiplier": 1000,
+  "buyMultiplier": 600,
+  "delta": 20,
+  "restock": {
+   "1103": 100,
+   "1101": 200,
+   "1105": 400,
+   "1109": 3000,
+   "1117": 100,
+   "1115": 200,
+   "1119": 400,
+   "1125": 3000,
+   "1121": 3000,
+   "1067": 100,
+   "1133": 700,
+   "1097": 700
+  }
+ },
+ {
+  "id": 23,
+  "name": "Bob's Brilliant Axes",
+  "originalStock": [
+   {
+    "id": 1265,
+    "amount": 5
+   },
+   {
+    "id": 1351,
+    "amount": 10
+   },
+   {
+    "id": 1349,
+    "amount": 5
+   },
+   {
+    "id": 1353,
+    "amount": 3
+   },
+   {
+    "id": 1363,
+    "amount": 5
+   },
+   {
+    "id": 1365,
+    "amount": 2
+   },
+   {
+    "id": 1369,
+    "amount": 1
+   }
+  ],
+  "faithful": true,
+  "general": false,
+  "sellMultiplier": 1000,
+  "buyMultiplier": 600,
+  "delta": 20,
+  "restock": {
+   "1265": 100,
+   "1351": 100,
+   "1349": 200,
+   "1353": 400,
+   "1363": 100,
+   "1365": 200,
+   "1369": 3000
+  }
+ },
+ {
+  "id": 24,
+  "name": "Lowe's Archery Emporium",
+  "originalStock": [
+   {
+    "id": 882,
+    "amount": 2000
+   },
+   {
+    "id": 884,
+    "amount": 1500
+   },
+   {
+    "id": 886,
+    "amount": 1000
+   },
+   {
+    "id": 888,
+    "amount": 800
+   },
+   {
+    "id": 890,
+    "amount": 600
+   },
+   {
+    "id": 877,
+    "amount": 1500
+   },
+   {
+    "id": 841,
+    "amount": 4
+   },
+   {
+    "id": 839,
+    "amount": 4
+   },
+   {
+    "id": 843,
+    "amount": 3
+   },
+   {
+    "id": 845,
+    "amount": 3
+   },
+   {
+    "id": 849,
+    "amount": 2
+   },
+   {
+    "id": 847,
+    "amount": 2
+   },
+   {
+    "id": 853,
+    "amount": 1
+   },
+   {
+    "id": 851,
+    "amount": 1
+   },
+   {
+    "id": 837,
+    "amount": 2
+   }
+  ],
+  "faithful": true,
+  "general": false,
+  "sellMultiplier": 1000,
+  "buyMultiplier": 550,
+  "delta": 10,
+  "restock": {
+   "882": 10,
+   "884": 15,
+   "886": 20,
+   "888": 15,
+   "890": 20,
+   "877": 10,
+   "841": 100,
+   "839": 100,
+   "843": 200,
+   "845": 200,
+   "849": 200,
+   "847": 200,
+   "853": 100,
+   "851": 100,
+   "837": 400
+  }
+ }
+]

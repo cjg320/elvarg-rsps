@@ -105,7 +105,7 @@ public final class FenceGates {
     }
 
     /** Removes two leaves and places two others in one step (preflighted by the caller). */
-    private static void replace(GameObject oldA, GameObject oldB, GameObject newA, GameObject newB) {
+    public static void replace(GameObject oldA, GameObject oldB, GameObject newA, GameObject newB) {
         for (GameObject o : new GameObject[] { oldA, oldB }) {
             World.getObjects().removeIf(x -> x.equals(o));
             ObjectManager.perform(o, ObjectManager.OperationType.DESPAWN);

@@ -129,6 +129,11 @@ public class ShopManager extends ShopIdentifiers {
             return;
         }
 
+        if (FaithfulShop.is(shop)) {
+            FaithfulShop.priceCheck(player, shop, itemId, shopItem);
+            return;
+        }
+
         // Check if the shop sells the item.
         if (!buysItems(shop, itemId)) {
 
@@ -196,6 +201,11 @@ public class ShopManager extends ShopIdentifiers {
 
         // Check if we failed the verification.
         if (flag) {
+            return;
+        }
+
+        if (FaithfulShop.is(shop)) {
+            FaithfulShop.buy(player, shop, slot, itemId, amount);
             return;
         }
 
@@ -324,6 +334,11 @@ public class ShopManager extends ShopIdentifiers {
 
         // Check if we failed the verification.
         if (flag) {
+            return;
+        }
+
+        if (FaithfulShop.is(shop)) {
+            FaithfulShop.sell(player, shop, slot, itemId, amount);
             return;
         }
 

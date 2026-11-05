@@ -95,6 +95,14 @@ public class NPCOptionPacketListener extends NpcIdentifiers implements PacketExe
 
         npc.setPositionToFace(player.getLocation());
 
+        // Faithful OSRS shopkeepers (wiki options "Talk-to, Trade"). Simplification: Talk-to opens the shop directly (the real
+        // dialogue's only productive branch is "Yes please, what are you selling?"); Trade (second click) opens it too.
+        if ((opcode == PacketConstants.FIRST_CLICK_NPC_OPCODE || opcode == PacketConstants.SECOND_CLICK_NPC_OPCODE)
+                && com.elvarg.game.model.container.shop.FaithfulShop.shopForNpc(npc.getId()) >= 0) {
+            ShopManager.open(player, com.elvarg.game.model.container.shop.FaithfulShop.shopForNpc(npc.getId()));
+            return;
+        }
+
         if (opcode == PacketConstants.FIRST_CLICK_NPC_OPCODE) {
             if (PetHandler.interact(player, npc)) {
 				// Player was interacting with their pet

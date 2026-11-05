@@ -54,6 +54,11 @@ public class Shop {
      */
     public static final ShopCurrency CURRENCY_COINS = ShopCurrencies.COINS.get();
 
+    /** Faithful OSRS pricing/stock rules (see FaithfulShop); null for Elvarg's stock shops. */
+    public com.elvarg.game.definition.ShopDefinition faithfulDef;
+    /** Faithful shops: item id -> ticks since the stock last moved toward its starting level. */
+    public final java.util.Map<Integer, Integer> restockCounters = new java.util.HashMap<>();
+
     private final int id;
     private final String name;
     private final Item[] originalStock;

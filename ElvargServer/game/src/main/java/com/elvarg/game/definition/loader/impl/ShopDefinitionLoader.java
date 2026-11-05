@@ -25,6 +25,17 @@ public class ShopDefinitionLoader extends DefinitionLoader {
 
         }
         reader.close();
+        // Faithful OSRS shops (stock, multipliers and restock from the OSRS Wiki; tools/build_content_data.py).
+        java.io.File ff = new java.io.File(GameConstants.DEFINITIONS_DIRECTORY + "shops_osrs.json");
+        if (ff.exists()) {
+            try (FileReader r2 = new FileReader(ff)) {
+                for (ShopDefinition def : new Gson().fromJson(r2, ShopDefinition[].class)) {
+                    Shop shop = new Shop(def.getId(), def.getName(), def.getOriginalStock());
+                    shop.faithfulDef = def;
+                    ShopManager.shops.put(def.getId(), shop);
+                }
+            }
+        }
     }
 
     @Override

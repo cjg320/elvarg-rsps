@@ -1,0 +1,1124 @@
+[
+ {
+  "id": 506,
+  "position": {
+   "x": 3211,
+   "y": 3247,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Lumbridge General Store keeper (OSRS Wiki Shop keeper (Lumbridge))"
+ },
+ {
+  "id": 507,
+  "position": {
+   "x": 3211,
+   "y": 3246,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Lumbridge General Store keeper (OSRS Wiki Shop keeper (Lumbridge))"
+ },
+ {
+  "id": 508,
+  "position": {
+   "x": 3206,
+   "y": 3400,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Varrock Swordshop keeper (OSRS Wiki Shop keeper (Varrock Swordshop))"
+ },
+ {
+  "id": 509,
+  "position": {
+   "x": 3207,
+   "y": 3400,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Varrock Swordshop keeper (OSRS Wiki Shop keeper (Varrock Swordshop))"
+ },
+ {
+  "id": 535,
+  "position": {
+   "x": 3230,
+   "y": 3437,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Horvik's Armour Shop keeper (OSRS Wiki Horvik)"
+ },
+ {
+  "id": 505,
+  "position": {
+   "x": 3231,
+   "y": 3203,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Bob's Brilliant Axes keeper (OSRS Wiki Bob)"
+ },
+ {
+  "id": 536,
+  "position": {
+   "x": 3233,
+   "y": 3423,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Lowe's Archery Emporium keeper (OSRS Wiki Lowe)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1884,
+   "y": 5207,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1885,
+   "y": 5203,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1876,
+   "y": 5198,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1884,
+   "y": 5201,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1887,
+   "y": 5205,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1877,
+   "y": 5199,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Southern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1891,
+   "y": 5236,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1894,
+   "y": 5229,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1893,
+   "y": 5235,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1895,
+   "y": 5228,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1896,
+   "y": 5232,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1892,
+   "y": 5226,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1894,
+   "y": 5233,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security Eastern centre room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1860,
+   "y": 5222,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2485,
+  "position": {
+   "x": 1860,
+   "y": 5226,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2486,
+  "position": {
+   "x": 1860,
+   "y": 5215,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1862,
+   "y": 5220,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2485,
+  "position": {
+   "x": 1863,
+   "y": 5215,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2486,
+  "position": {
+   "x": 1863,
+   "y": 5217,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1864,
+   "y": 5218,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2485,
+  "position": {
+   "x": 1859,
+   "y": 5219,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2486,
+  "position": {
+   "x": 1861,
+   "y": 5224,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1862,
+   "y": 5228,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security Western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1910,
+   "y": 5236,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1913,
+   "y": 5239,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1911,
+   "y": 5240,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1912,
+   "y": 5244,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2488,
+  "position": {
+   "x": 1913,
+   "y": 5236,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2489,
+  "position": {
+   "x": 1905,
+   "y": 5235,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2487,
+  "position": {
+   "x": 1912,
+   "y": 5242,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 16, 25 - Stronghold of Security North-eastern room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1860,
+   "y": 5205,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security South-western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2485,
+  "position": {
+   "x": 1862,
+   "y": 5201,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security South-western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2486,
+  "position": {
+   "x": 1859,
+   "y": 5201,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security South-western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2484,
+  "position": {
+   "x": 1864,
+   "y": 5204,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Goblin 5, 13, 11 - Stronghold of Security South-western room (OSRS Wiki; level per tile cycled, not given)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1862,
+   "y": 5190,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1863,
+   "y": 5189,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1867,
+   "y": 5188,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1871,
+   "y": 5191,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1870,
+   "y": 5235,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1871,
+   "y": 5242,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1872,
+   "y": 5227,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1873,
+   "y": 5212,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1873,
+   "y": 5238,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1874,
+   "y": 5216,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1875,
+   "y": 5214,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1875,
+   "y": 5218,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1878,
+   "y": 5216,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1879,
+   "y": 5218,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1880,
+   "y": 5217,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1880,
+   "y": 5220,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1890,
+   "y": 5243,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1893,
+   "y": 5238,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1893,
+   "y": 5241,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1894,
+   "y": 5243,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1897,
+   "y": 5244,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2481,
+  "position": {
+   "x": 1899,
+   "y": 5242,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 12 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1890,
+   "y": 5195,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1893,
+   "y": 5189,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1893,
+   "y": 5198,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1897,
+   "y": 5196,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1899,
+   "y": 5198,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1900,
+   "y": 5208,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1900,
+   "y": 5210,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1901,
+   "y": 5191,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1901,
+   "y": 5197,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1901,
+   "y": 5201,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1901,
+   "y": 5206,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1902,
+   "y": 5193,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1902,
+   "y": 5199,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1902,
+   "y": 5204,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1902,
+   "y": 5207,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1904,
+   "y": 5191,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1890,
+   "y": 5243,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1893,
+   "y": 5238,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1893,
+   "y": 5241,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1894,
+   "y": 5243,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1897,
+   "y": 5244,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1899,
+   "y": 5242,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2483,
+  "position": {
+   "x": 1902,
+   "y": 5242,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Minotaur 27 - Stronghold of Security (OSRS Wiki)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1887,
+   "y": 5221,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1889,
+   "y": 5214,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1889,
+   "y": 5217,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1890,
+   "y": 5224,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1892,
+   "y": 5217,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1892,
+   "y": 5220,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1870,
+   "y": 5226,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1871,
+   "y": 5229,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1871,
+   "y": 5236,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1872,
+   "y": 5233,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1873,
+   "y": 5239,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1886,
+   "y": 5188,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1889,
+   "y": 5187,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1889,
+   "y": 5191,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2491,
+  "position": {
+   "x": 1894,
+   "y": 5193,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ },
+ {
+  "id": 2490,
+  "position": {
+   "x": 1897,
+   "y": 5189,
+   "z": 0
+  },
+  "facing": "SOUTH",
+  "radius": 2,
+  "description": "Wolf 11, 14 - Stronghold of Security first level (OSRS Wiki; level per tile cycled)"
+ }
+]

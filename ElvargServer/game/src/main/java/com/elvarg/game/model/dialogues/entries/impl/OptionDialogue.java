@@ -24,6 +24,14 @@ public class OptionDialogue extends Dialogue {
         this(index, "Choose an Option", action, options);
     }
 
+    public String getTitle() {
+        return title;
+    }
+
+    public String[] getOptions() {
+        return options;
+    }
+
     public void execute(DialogueOption option) {
         if (action == null) {
             return;

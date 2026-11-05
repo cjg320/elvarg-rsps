@@ -127,6 +127,11 @@ public class NpcDefinition {
         }
     }
 
+    /** Real-game aggressiveness override (OSRS Wiki infobox "aggressive"). */
+    public void applyOsrsAggressive(boolean aggressive) {
+        this.aggressive = aggressive;
+    }
+
     public int getMaxHit() {
         return maxHit;
     }

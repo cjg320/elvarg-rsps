@@ -1,0 +1,62 @@
+{
+ "2484": {
+  "hitpoints": 5,
+  "maxHit": 1,
+  "attackSpeed": 6,
+  "aggressive": false
+ },
+ "2486": {
+  "hitpoints": 7,
+  "maxHit": 1,
+  "attackSpeed": 6,
+  "aggressive": false
+ },
+ "2485": {
+  "hitpoints": 16,
+  "maxHit": 2,
+  "attackSpeed": 4,
+  "aggressive": false
+ },
+ "2487": {
+  "hitpoints": 22,
+  "maxHit": 3,
+  "attackSpeed": 6,
+  "aggressive": false
+ },
+ "2489": {
+  "hitpoints": 22,
+  "maxHit": 3,
+  "attackSpeed": 6,
+  "aggressive": false
+ },
+ "2488": {
+  "hitpoints": 26,
+  "maxHit": 3,
+  "attackSpeed": 4,
+  "aggressive": false
+ },
+ "2481": {
+  "hitpoints": 10,
+  "maxHit": 2,
+  "attackSpeed": 4,
+  "aggressive": false
+ },
+ "2483": {
+  "hitpoints": 22,
+  "maxHit": 3,
+  "attackSpeed": 4,
+  "aggressive": false
+ },
+ "2491": {
+  "hitpoints": 10,
+  "maxHit": 2,
+  "attackSpeed": 4,
+  "aggressive": false
+ },
+ "2490": {
+  "hitpoints": 15,
+  "maxHit": 2,
+  "attackSpeed": 4,
+  "aggressive": false
+ }
+}

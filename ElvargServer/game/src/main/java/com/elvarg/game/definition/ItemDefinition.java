@@ -84,6 +84,13 @@ public class ItemDefinition {
         return bloodMoneyValue;
     }
 
+    /** Real-game store value (OSRS Wiki, data/definitions/item_values_osrs.json); alch values follow OSRS (low 40%, high 60% of value). */
+    public void applyOsrsValue(int v) {
+        this.value = v;
+        this.lowAlch = (int) (v * 0.4);
+        this.highAlch = (int) (v * 0.6);
+    }
+
     public int getHighAlchValue() {
         return highAlch;
     }

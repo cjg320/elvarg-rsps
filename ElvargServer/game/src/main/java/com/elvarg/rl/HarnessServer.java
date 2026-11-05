@@ -178,13 +178,64 @@ public final class HarnessServer {
 					.append(n.getLocation().getX()).append(",").append(n.getLocation().getY()).append(",")
 					.append(healthBarShown(n)).append(",")
 					.append(n.getDefinition() != null && n.getDefinition().isAttackable() ? 1 : 0).append(",")
-					.append(n.getDefinition() == null ? 0 : n.getDefinition().getCombatLevel()).append("]");
+					.append(n.getDefinition() == null ? 0 : n.getDefinition().getCombatLevel()).append(",")
+					.append("\"").append(n.getDefinition() == null || n.getDefinition().getName() == null ? "" : n.getDefinition().getName().replace("\"", "")).append("\",")
+					.append("\"").append(com.elvarg.game.model.container.shop.FaithfulShop.npcOptions(n.getId())).append("\"]");
 			first = false;
 		}
 		return sb.append("]").toString();
 	}
 
 
+
+	/** The chatbox option dialogue the client would show (title and option texts), or null. Plain NPC/statement dialogues are not exposed yet. */
+	private static String dialogueJson(Player p) {
+		com.elvarg.game.model.dialogues.entries.Dialogue d = p.getDialogueManager().current();
+		if (!(d instanceof com.elvarg.game.model.dialogues.entries.impl.OptionDialogue)) {
+			return "null";
+		}
+		com.elvarg.game.model.dialogues.entries.impl.OptionDialogue od = (com.elvarg.game.model.dialogues.entries.impl.OptionDialogue) d;
+		StringBuilder sb = new StringBuilder("{\"title\":\"").append(od.getTitle().replace("\\", "").replace("\"", "'")).append("\",\"options\":[");
+		for (int i = 0; i < od.getOptions().length; i++) {
+			sb.append(i == 0 ? "" : ",").append("\"").append(od.getOptions()[i].replace("\\", "").replace("\"", "'")).append("\"");
+		}
+		return sb.append("]}").toString();
+	}
+
+	/**
+	 * The shop interface as the client shows it while a shop is open: name, each stocked item with its stock and the price one unit costs now
+	 * (the "Value" check), and each inventory item with the price this shop would pay (-1 = cannot be sold here, as the Value check says). null if closed.
+	 */
+	private static String shopJson(Player p) {
+		com.elvarg.game.model.container.shop.Shop shop = p.getShop();
+		if (shop == null || p.getStatus() != com.elvarg.game.model.PlayerStatus.SHOPPING) {
+			return "null";
+		}
+		boolean f = com.elvarg.game.model.container.shop.FaithfulShop.is(shop);
+		StringBuilder sb = new StringBuilder("{\"id\":").append(shop.getId()).append(",\"name\":\"").append(shop.getName().replace("\"", "")).append("\",\"faithful\":").append(f).append(",\"stock\":[");
+		boolean first = true;
+		for (com.elvarg.game.model.Item it : shop.getCurrentStock()) {
+			if (it == null) {
+				continue;
+			}
+			int price = f ? com.elvarg.game.model.container.shop.FaithfulShop.buyPrice(shop, it.getId()) : it.getDefinition().getValue();
+			sb.append(first ? "" : ",").append("[").append(it.getId()).append(",").append(it.getAmount()).append(",").append(price).append("]");
+			first = false;
+		}
+		sb.append("],\"sell\":[");
+		first = true;
+		com.elvarg.game.model.Item[] inv = p.getInventory().getItems();
+		for (int i = 0; i < inv.length; i++) {
+			if (inv[i] == null || inv[i].getId() <= 0) {
+				continue;
+			}
+			int price = f && com.elvarg.game.model.container.shop.FaithfulShop.buys(shop, inv[i].getId())
+					? com.elvarg.game.model.container.shop.FaithfulShop.sellPrice(shop, inv[i].getId()) : -1;
+			sb.append(first ? "" : ",").append("[").append(i).append(",").append(inv[i].getId()).append(",").append(price).append("]");
+			first = false;
+		}
+		return sb.append("]}").toString();
+	}
 
 	/** Item ids offered by the creation (make-X) menu the player currently has open, as the client would show them; [] if none. */
 	private static String creationMenu(Player p) {
@@ -635,10 +686,23 @@ public final class HarnessServer {
 				}
 				Player p = user == null ? null : accounts.get(user);
 				Integer id = intField(line, "item_id"), amt = intField(line, "amount");
-				if (p == null || id == null || amt == null || amt < 1 || amt > 100) {
+				if (p == null || id == null || amt == null || amt < 1 || amt > 1000000) {
 					return "{\"ok\":false,\"error\":\"bad dev_give\"}";
 				}
 				p.getInventory().add(id, amt);
+				p.getInventory().refreshItems();
+				return "{\"ok\":true}";
+			}
+			case "dev_strip": {
+				// DEV SANDBOX ONLY (test fixture): empties the inventory.
+				if (!"1".equals(System.getenv("HARNESS_DEV"))) {
+					return "{\"ok\":false,\"error\":\"dev commands disabled\"}";
+				}
+				Player p = user == null ? null : accounts.get(user);
+				if (p == null) {
+					return "{\"ok\":false,\"error\":\"bad dev_strip\"}";
+				}
+				p.getInventory().resetItems();
 				p.getInventory().refreshItems();
 				return "{\"ok\":true}";
 			}
@@ -751,7 +815,7 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"shop\":" + shopJson(p) + ",\"dialogue\":" + dialogueJson(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 
 	/**

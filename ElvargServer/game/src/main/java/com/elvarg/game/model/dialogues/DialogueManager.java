@@ -144,6 +144,11 @@ public class DialogueManager {
         dialogue.send(player);
     }
 
+    /** The dialogue entry currently shown, or null (harness: what the chatbox displays). */
+    public Dialogue current() {
+        return dialogues.get(index);
+    }
+
     /**
      * Attempts to handle a selected {@link DialogueOption}.
      * 

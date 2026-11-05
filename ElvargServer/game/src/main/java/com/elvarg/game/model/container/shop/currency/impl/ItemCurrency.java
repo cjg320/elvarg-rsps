@@ -33,16 +33,16 @@ public class ItemCurrency implements ShopCurrency {
 
     @Override
     public int getAmountForPlayer(Player player) {
-        return player.getInventory().getAmount(this.itemDefinition.getId());
+        return player.getInventory().getAmount(this.itemId);
     }
 
     @Override
     public void decrementForPlayer(Player player, int amount) {
-        player.getInventory().delete(this.itemDefinition.getId(), amount);
+        player.getInventory().delete(this.itemId, amount);
     }
 
     @Override
     public void incrementForPlayer(Player player, int amount) {
-        player.getInventory().add(this.itemDefinition.getId(), amount);
+        player.getInventory().add(this.itemId, amount);
     }
 }

@@ -53,6 +53,9 @@ public class ObjectActionPacketListener extends ObjectIdentifiers implements Pac
         if (com.elvarg.game.entity.impl.object.FenceGates.toggle(player, object)) {
             return;
         }
+        if (com.elvarg.game.content.Stronghold.handle(player, object)) {
+            return;
+        }
         if(doorHandler(player, object)) {
 	        return;
 	    }

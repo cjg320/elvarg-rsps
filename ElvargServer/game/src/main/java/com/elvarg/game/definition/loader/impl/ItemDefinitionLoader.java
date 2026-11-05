@@ -18,6 +18,19 @@ public class ItemDefinitionLoader extends DefinitionLoader {
             ItemDefinition.definitions.put(def.getId(), def);
         }
         reader.close();
+        // Real-game item values (OSRS Wiki) for the items the faithful shops and early economy use; Elvarg's table differs.
+        java.io.File vf = new java.io.File(GameConstants.DEFINITIONS_DIRECTORY + "item_values_osrs.json");
+        if (vf.exists()) {
+            try (FileReader r = new FileReader(vf)) {
+                com.google.gson.JsonObject o = new Gson().fromJson(r, com.google.gson.JsonObject.class);
+                for (java.util.Map.Entry<String, com.google.gson.JsonElement> e : o.entrySet()) {
+                    ItemDefinition d = ItemDefinition.definitions.get(Integer.parseInt(e.getKey()));
+                    if (d != null) {
+                        d.applyOsrsValue(e.getValue().getAsInt());
+                    }
+                }
+            }
+        }
     }
 
     @Override
