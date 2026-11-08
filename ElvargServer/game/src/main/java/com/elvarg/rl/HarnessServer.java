@@ -833,6 +833,12 @@ public final class HarnessServer {
 		return sb.append("]").toString();
 	}
 
+	/** Diagnostic only (logging/probes, never a policy input): index of the NPC the player's combat targets, or -1. */
+	private static int combatTarget(Player p) {
+		com.elvarg.game.entity.impl.Mobile t = p.getCombat() == null ? null : p.getCombat().getTarget();
+		return t instanceof com.elvarg.game.entity.impl.npc.NPC ? t.getIndex() : -1;
+	}
+
 	private static String state(Player p) {
 		SkillManager sm = p.getSkillManager();
 		StringBuilder sk = new StringBuilder("{");
@@ -846,7 +852,7 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"shop\":" + shopJson(p) + ",\"dialogue\":" + dialogueJson(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"shop\":" + shopJson(p) + ",\"dialogue\":" + dialogueJson(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"combat_target\":" + combatTarget(p) + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 
 	/**
