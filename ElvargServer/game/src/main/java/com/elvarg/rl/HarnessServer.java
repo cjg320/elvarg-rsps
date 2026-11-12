@@ -839,6 +839,17 @@ public final class HarnessServer {
 		return t instanceof com.elvarg.game.entity.impl.npc.NPC ? t.getIndex() : -1;
 	}
 
+	/** Diagnostic only (logging/probes, never a policy input): engine-credited NPC kills [npcId, npcIndex, tick]. */
+	private static String killsJson(Player p) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (int[] k : p.harnessNpcKills) {
+			sb.append(first ? "" : ",").append("[").append(k[0]).append(",").append(k[1]).append(",").append(k[2]).append("]");
+			first = false;
+		}
+		return sb.append("]").toString();
+	}
+
 	private static String state(Player p) {
 		SkillManager sm = p.getSkillManager();
 		StringBuilder sk = new StringBuilder("{");
@@ -852,7 +863,7 @@ public final class HarnessServer {
 		return "{\"ok\":true,\"protocol_version\":" + PROTOCOL_VERSION + ",\"game_tick\":" + tickCount
 				+ ",\"registered\":" + p.isRegistered() + ",\"x\":" + p.getLocation().getX() + ",\"y\":"
 				+ p.getLocation().getY() + ",\"z\":" + p.getLocation().getZ() + ",\"skills\":" + sk + ",\"inventory\":"
-				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"shop\":" + shopJson(p) + ",\"dialogue\":" + dialogueJson(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"combat_target\":" + combatTarget(p) + ",\"deaths\":" + p.harnessDeaths + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
+				+ items(p.getInventory().getItems()) + ",\"equipment\":" + items(p.getEquipment().getItems()) + ",\"npcs\":" + npcs(p) + ",\"ground\":" + groundItems(p) + ",\"objects\":" + interactableObjects(p) + ",\"messages\":" + messages(p) + ",\"shop\":" + shopJson(p) + ",\"dialogue\":" + dialogueJson(p) + ",\"creation_menu\":" + creationMenu(p) + ",\"interface_id\":" + p.getInterfaceId() + ",\"combat_target\":" + combatTarget(p) + ",\"deaths\":" + p.harnessDeaths + ",\"npc_kills\":" + killsJson(p) + ",\"busy\":" + p.busy() + ",\"bank_open\":" + bankOpen(p) + ",\"bank\":" + (bankOpen(p) ? bank(p) : "null") + "}";
 	}
 
 	/**

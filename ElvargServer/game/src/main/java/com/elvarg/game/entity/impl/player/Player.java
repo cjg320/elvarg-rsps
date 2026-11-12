@@ -173,6 +173,8 @@ public class Player extends Mobile {
 
 	/** Number of deaths this session (incremented when the stock death sequence starts). */
 	public int harnessDeaths;
+	/** DIAGNOSTIC ONLY (never an observation): NPC kills credited to this account by the engine's death path: [npcId, npcIndex, tick]. */
+	public final java.util.List<int[]> harnessNpcKills = new java.util.concurrent.CopyOnWriteArrayList<>();
 	/** Harness accounts only: the last chat lines a human would have read (state feed 'messages'). */
 	public final java.util.ArrayDeque<String> harnessMessages = new java.util.ArrayDeque<>();
 

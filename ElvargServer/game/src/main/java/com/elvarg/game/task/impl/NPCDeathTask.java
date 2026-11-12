@@ -59,6 +59,8 @@ public class NPCDeathTask extends Task {
 
                     // Get the {@link Player} who killed us..
                     killer = npc.getCombat().getKiller(true);
+                    // Diagnostic-only kill record for the harness (no game effect): once per death, credited killer only.
+                    killer.ifPresent(k -> k.harnessNpcKills.add(new int[] { npc.getId(), npc.getIndex(), (int) com.elvarg.rl.HarnessServer.currentTick() }));
 
                     // Start death animation..
                     npc.performAnimation(new Animation(npc.getCurrentDefinition().getDeathAnim(), Priority.HIGH));
