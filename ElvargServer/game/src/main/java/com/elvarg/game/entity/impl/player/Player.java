@@ -387,6 +387,11 @@ public class Player extends Mobile {
 		// Calculated in the MagicCombatMethod class.
 
 		int speed = getWeapon().getSpeed();
+		// Per-item speed (OSRS wiki: Bronze/Iron/Rune shortsword, stab sword style row = 4 ticks); the SWORD weapon class is 5 and also holds unrelated items.
+		final Item heldWeapon = getEquipment().getItems()[Equipment.WEAPON_SLOT];
+		if (heldWeapon != null && (heldWeapon.getId() == 1277 || heldWeapon.getId() == 1279 || heldWeapon.getId() == 1289)) {
+			speed = 4;
+		}
 
 		if (getFightType().toString().toLowerCase().contains("rapid")) {
 			speed--;
@@ -543,7 +548,11 @@ public class Player extends Mobile {
 					}
 				}
 
+				int levelBefore = current;
 				getSkillManager().increaseCurrentLevel(skill, restoreRate, max);
+				if (skill == Skill.HITPOINTS && com.elvarg.rl.HarnessEvents.ENABLED) {
+					com.elvarg.rl.HarnessEvents.add(4, com.elvarg.rl.HarnessServer.currentTick(), levelBefore, getSkillManager().getCurrentLevel(skill));
+				}
 			}
 		}
 	}

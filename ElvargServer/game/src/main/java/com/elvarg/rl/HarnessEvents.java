@@ -9,7 +9,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 0 ROLL   [0, tick, attackerIsNpc, attackerNpcId(-1 player), attackerIndex, targetIsNpc, targetIndex, combatTypeOrdinal, attRoll, defRoll, accurate, rawDamage]
  * 1 DAMAGE [1, tick, mobileIsNpc, mobileIndex, requested, applied, hpBefore, hpAfter]
  * 2 HEAL   [2, tick, nominalHeal, appliedHeal, hpBefore, hpAfter]
- * 3 HPSET  [3, tick, hpBefore, hpAfter]   (every player hitpoint change, so unexplained deltas such as regeneration are visible)
+ * 3 HPSET  [3, tick, hpBefore, hpAfter]   (player hitpoint changes through setHitpoints)
+ * 4 REGEN  [4, tick, hpBefore, hpAfter]   (natural player hitpoint regeneration, which bypasses setHitpoints)
  */
 public final class HarnessEvents {
     public static final boolean ENABLED = "1".equals(System.getenv("HARNESS_EVENTS"));
