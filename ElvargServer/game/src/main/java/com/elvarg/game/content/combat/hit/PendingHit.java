@@ -138,9 +138,24 @@ public class PendingHit {
             HitDamage damage = accurate ? CombatFactory.getHitDamage(attacker, target, combatType) : new HitDamage(0, HitMask.BLUE);
             CombatFactory.applyExtraHitRolls(attacker, target, combatType, damage, accurate, method);
             totalDamage += damage.getDamage();
+            if (com.elvarg.rl.HarnessEvents.ENABLED) {
+                logRoll(damage);
+            }
             hits[i] = damage;
         }
         return hits;
+    }
+
+    /** Diagnostic only: records the melee accuracy rolls (deterministic recomputation, no RNG) and raw damage of a hit; see HarnessEvents. */
+    private void logRoll(HitDamage damage) {
+        int att = 0, def = 0;
+        if (combatType == CombatType.MELEE) {
+            att = AccuracyFormulasDpsCalc.attackMeleeRoll(attacker);
+            def = AccuracyFormulasDpsCalc.defenseMeleeRoll(attacker, target);
+        }
+        com.elvarg.rl.HarnessEvents.add(0, com.elvarg.rl.HarnessServer.currentTick(), attacker.isNpc() ? 1 : 0,
+                attacker.isNpc() ? attacker.getAsNpc().getId() : -1, attacker.getIndex(), target.isNpc() ? 1 : 0, target.getIndex(),
+                combatType.ordinal(), att, def, accurate ? 1 : 0, damage.getDamage());
     }
 
     public void updateTotalDamage() {

@@ -131,7 +131,11 @@ public class Food {
 			healAmount = 0;
 		}
 		
+		int hpBeforeHeal = player.getHitpoints();
 		player.setHitpoints(player.getHitpoints() + healAmount);
+		if (com.elvarg.rl.HarnessEvents.ENABLED) {
+			com.elvarg.rl.HarnessEvents.add(2, com.elvarg.rl.HarnessServer.currentTick(), food.heal, healAmount, hpBeforeHeal, player.getHitpoints());
+		}
 		
 		// Send message to player..
 		String e = food == Edible.BANDAGES ? "use" : "eat";

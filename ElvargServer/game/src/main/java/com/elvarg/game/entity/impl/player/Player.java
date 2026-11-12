@@ -344,7 +344,11 @@ public class Player extends Mobile {
 			}
 		}
 
+		int hpPrev = skillManager.getCurrentLevel(Skill.HITPOINTS);
 		skillManager.setCurrentLevel(Skill.HITPOINTS, hitpoints);
+		if (com.elvarg.rl.HarnessEvents.ENABLED && hpPrev != hitpoints) {
+			com.elvarg.rl.HarnessEvents.add(3, com.elvarg.rl.HarnessServer.currentTick(), hpPrev, hitpoints);
+		}
 		packetSender.sendSkill(Skill.HITPOINTS);
 		if (getHitpoints() <= 0 && !isDying)
 			appendDeath();

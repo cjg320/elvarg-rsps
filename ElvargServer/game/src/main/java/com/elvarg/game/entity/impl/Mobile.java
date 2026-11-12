@@ -452,7 +452,11 @@ public abstract class Mobile extends Entity {
 		int outcome = getHitpoints() - hit.getDamage();
 		if (outcome < 0)
 			outcome = 0;
+		int hpBefore = getHitpoints();
 		setHitpoints(outcome);
+		if (com.elvarg.rl.HarnessEvents.ENABLED) {
+			com.elvarg.rl.HarnessEvents.add(1, com.elvarg.rl.HarnessServer.currentTick(), isNpc() ? 1 : 0, getIndex(), hit.getDamage(), hpBefore - outcome, hpBefore, outcome);
+		}
 		return hit;
 	}
 

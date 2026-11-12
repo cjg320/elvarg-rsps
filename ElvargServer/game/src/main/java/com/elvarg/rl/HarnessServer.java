@@ -404,6 +404,9 @@ public final class HarnessServer {
 				}
 				return state(p);
 			}
+			case "hit_events": {
+				return "{\"ok\":true,\"events\":" + HarnessEvents.drainJson() + "}";
+			}
 			case "save": {
 				Player p = user == null ? null : accounts.get(user);
 				if (p == null) {
