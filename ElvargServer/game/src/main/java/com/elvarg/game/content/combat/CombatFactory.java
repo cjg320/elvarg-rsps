@@ -184,6 +184,12 @@ public class CombatFactory {
 			// Do magic effects with the calculated damage..
 		}
 
+		// OSRS fidelity: a player's damage roll of 0 on a successful accuracy roll is raised to 1
+		// (OSRS Wiki, "Successful hit"). NPC attackers can still roll 0.
+		if (entity.isPlayer() && damage == 0) {
+			damage = 1;
+		}
+
 		// We've got our damage. We can now create a HitDamage
 		// instance.
 		HitDamage hitDamage = new HitDamage(damage, damage == 0 ? HitMask.BLUE : HitMask.RED);
