@@ -199,6 +199,13 @@ public class AccuracyFormulasDpsCalc {
         return (int) Math.floor(def);
     }
 
+    /** Defence bonus of an NPC for the given BonusManager.DEFENCE_* index; npc_defs stats layout: 5 levels, 5 attack bonuses, then 5 defence bonuses (stab, slash, crush, magic, ranged). */
+    static int npcDefenceBonus(Mobile npc, int defenceIndex) {
+        int[] stats = npc.getAsNpc().getCurrentDefinition().getStats();
+        int i = 10 + defenceIndex;
+        return (stats != null && stats.length > i) ? stats[i] : 0;
+    }
+
     public static int defenseMeleeRoll(Mobile entity, Mobile enemy) {
         int bonusType = (entity.isNpc() ? 3 /* Default case */ : entity.getAsPlayer().getFightType().getBonusType());
 
@@ -210,10 +217,10 @@ public class AccuracyFormulasDpsCalc {
 
         Player enemyPlayer = enemy.getAsPlayer();
 
-        // NPCs don't have defence bonuses currently
-        int defStab = (enemy.isNpc() ? 0 : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_STAB]);
-        int defSlash = (enemy.isNpc() ? 0 : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_SLASH]);
-        int defCrush = (enemy.isNpc() ? 0 : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_CRUSH]);
+        // NPC melee defence bonuses come from the NPC definition stats[10..12] (stab, slash, crush), per OSRS Wiki Monster bonuses.
+        int defStab = (enemy.isNpc() ? npcDefenceBonus(enemy, BonusManager.DEFENCE_STAB) : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_STAB]);
+        int defSlash = (enemy.isNpc() ? npcDefenceBonus(enemy, BonusManager.DEFENCE_SLASH) : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_SLASH]);
+        int defCrush = (enemy.isNpc() ? npcDefenceBonus(enemy, BonusManager.DEFENCE_CRUSH) : enemyPlayer.getBonusManager().getDefenceBonus()[BonusManager.DEFENCE_CRUSH]);
 
         switch (bonusType) {
             case BonusManager.ATTACK_STAB:
