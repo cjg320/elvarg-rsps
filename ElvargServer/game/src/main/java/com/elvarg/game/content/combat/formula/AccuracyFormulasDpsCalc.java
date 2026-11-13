@@ -117,8 +117,11 @@ public class AccuracyFormulasDpsCalc {
         int attRoll = effectiveAttackLevel(entity);
 
         if (entity.isNpc()) {
-            // NPC's don't currently have stab/slash/crush bonuses
-            attRoll *= 64;
+            // NPC attack roll = (attack level + 9) * (attack bonus + 64) (osrs-dps-calc NPCVsPlayerCalc.getNPCMaxAttackRoll); the single
+            // monster attack bonus is read from npc_defs stats[5..7] (stab, slash, crush), highest taken.
+            int[] st = entity.getAsNpc().getCurrentDefinition().getStats();
+            int npcBonus = (st != null && st.length > 7) ? Math.max(st[5], Math.max(st[6], st[7])) : 0;
+            attRoll *= npcBonus + 64;
             return attRoll;
         }
 
